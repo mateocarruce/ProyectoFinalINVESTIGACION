@@ -1,6 +1,9 @@
+"use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { solveTransport } from "../services/transportService";
-import "bootstrap/dist/css/bootstrap.min.css";  // 📌 Importamos Bootstrap
+import "bootstrap/dist/css/bootstrap.min.css";
+import { Modal } from "react-bootstrap";  // ✅ Modal de Bootstrap para análisis de sensibilidad
 
 export default function TransportPage() {
   const [numSuppliers, setNumSuppliers] = useState(3);
@@ -13,6 +16,8 @@ export default function TransportPage() {
   const [method, setMethod] = useState("northwest");
   const [solution, setSolution] = useState(null);
   const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const router = useRouter();
 
   const handleNumSuppliersChange = (e) => {
     const newNum = Number(e.target.value);
@@ -80,127 +85,145 @@ export default function TransportPage() {
   );
 
   return (
-    <div className="container mt-5">
-      <h1 className="text-center text-primary mb-4">🚚 Problema de Transporte</h1>
+    <div className="container-fluid bg-light min-vh-100">
+      {/* ✅ Navbar FIJO */}
+      <nav className="navbar navbar-dark bg-dark p-3">
+        <button onClick={() => router.push("/")} className="btn btn-light">
+          ⬅ Regresar al Inicio
+        </button>
+        <h3 className="text-white mx-auto">Problema de Transporte</h3>
+      </nav>
 
-      <div className="row">
-        {/* Número de Suministros */}
-        <div className="col-md-6">
-          <label className="form-label">🚛 Número de Suministros:</label>
-          <input
-            type="number"
-            className="form-control"
-            min="1"
-            value={numSuppliers}
-            onChange={handleNumSuppliersChange}
-          />
-        </div>
+      {/* Espacio para evitar solapamiento con el Navbar */}
+      <div className="container mt-5">
+        <div className="row justify-content-center">
+          <div className="col-md-8">
+            <div className="card shadow-lg p-4">
+              <h4 className="text-primary text-center">📦 Parámetros del Problema</h4>
 
-        {/* Número de Demandas */}
-        <div className="col-md-6">
-          <label className="form-label">🏢 Número de Demandas:</label>
-          <input
-            type="number"
-            className="form-control"
-            min="1"
-            value={numDemands}
-            onChange={handleNumDemandsChange}
-          />
-        </div>
-      </div>
+              {/* Sección de parámetros */}
+              <div className="row mt-3">
+                <div className="col-md-6">
+                  <label>🚛 Número de Suministros:</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    min="1"
+                    value={numSuppliers}
+                    onChange={handleNumSuppliersChange}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label>🏢 Número de Demandas:</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    min="1"
+                    value={numDemands}
+                    onChange={handleNumDemandsChange}
+                  />
+                </div>
+              </div>
 
-      {/* Sección para ingresar oferta (Supply) */}
-      <h3 className="mt-4">📦 Oferta (Supply)</h3>
-      <div className="input-group">
-        {supply.map((value, i) => (
-          <input
-            key={i}
-            type="number"
-            className="form-control"
-            value={value}
-            onChange={(e) => handleSupplyChange(i, e.target.value)}
-          />
-        ))}
-      </div>
-
-      {/* Sección para ingresar demanda (Demand) */}
-      <h3 className="mt-4">🏭 Demanda (Demand)</h3>
-      <div className="input-group">
-        {demand.map((value, i) => (
-          <input
-            key={i}
-            type="number"
-            className="form-control"
-            value={value}
-            onChange={(e) => handleDemandChange(i, e.target.value)}
-          />
-        ))}
-      </div>
-
-      {/* Tabla para ingresar costos */}
-      <div className="mt-4">
-        <h3>💲 Matriz de Costos</h3>
-        <table className="table table-bordered">
-          <tbody>
-            {costs.map((row, i) => (
-              <tr key={i}>
-                {row.map((cost, j) => (
-                  <td key={j}>
+              {/* Sección para ingresar oferta y demanda */}
+              <div className="mt-4">
+                <h5 className="text-success">📦 Oferta</h5>
+                <div className="d-flex gap-2">
+                  {supply.map((value, i) => (
                     <input
+                      key={i}
                       type="number"
-                      className="form-control"
-                      value={cost}
-                      onChange={(e) => handleCostChange(i, j, e.target.value)}
+                      className="form-control w-25"
+                      value={value}
+                      onChange={(e) => handleSupplyChange(i, e.target.value)}
                     />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  ))}
+                </div>
 
-      {/* Método de selección */}
-      <label className="mt-4">
-        📌 Método Inicial:
-        <select
-          className="form-select mt-2"
-          value={method}
-          onChange={(e) => setMethod(e.target.value)}
-        >
-          <option value="northwest">Esquina Noroeste</option>
-          <option value="minimum_cost">Costo Mínimo</option>
-          <option value="vogel">Aproximación de Vogel</option>
-        </select>
-      </label>
+                <h5 className="text-danger mt-4">🏭 Demanda</h5>
+                <div className="d-flex gap-2">
+                  {demand.map((value, i) => (
+                    <input
+                      key={i}
+                      type="number"
+                      className="form-control w-25"
+                      value={value}
+                      onChange={(e) => handleDemandChange(i, e.target.value)}
+                    />
+                  ))}
+                </div>
+              </div>
 
-      {/* Botón para resolver */}
-      <button className="btn btn-primary w-100 mt-3" onClick={handleSubmit}>
-        🚀 Resolver
-      </button>
+              {/* Matriz de Costos */}
+              <div className="mt-4">
+                <h5 className="text-dark">💲 Matriz de Costos</h5>
+                <table className="table table-bordered">
+                  <tbody>
+                    {costs.map((row, i) => (
+                      <tr key={i}>
+                        {row.map((cost, j) => (
+                          <td key={j}>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={cost}
+                              onChange={(e) => handleCostChange(i, j, e.target.value)}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-      {/* Sección de resultados */}
-      {solution && solution.status === "success" && (
-        <div className="mt-4 p-4 bg-light rounded border">
-          {/* 🔹 Mensaje de balanceo */}
-          {solution.balance_message && (
-            <p className="alert alert-warning text-center">{solution.balance_message}</p>
-          )}
+              {/* Método de selección */}
+              <div className="mt-3">
+                <label>📌 Método Inicial:</label>
+                <select className="form-select" value={method} onChange={(e) => setMethod(e.target.value)}>
+                  <option value="northwest">Esquina Noroeste</option>
+                  <option value="minimum_cost">Costo Mínimo</option>
+                  <option value="vogel">Aproximación de Vogel</option>
+                </select>
+              </div>
 
-          <h2 className="text-success text-center">
-            📊 Costo Total: {solution.total_cost}
-          </h2>
-
-          <h3 className="mt-4">🛠 Solución Inicial:</h3>
-          {renderMatrixTable(solution.initial_solution)}
-
-          <h3 className="mt-4">🏆 Solución Óptima:</h3>
-          {renderMatrixTable(solution.optimal_solution)}
+              {/* Botón Resolver */}
+              <button className="btn btn-success w-100 mt-3" onClick={handleSubmit}>
+                🚀 Resolver
+              </button>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Error */}
-      {error && <p className="alert alert-danger mt-4 text-center">{error}</p>}
+        {/* Resultados */}
+        {solution && (
+          <div className="mt-5">
+            <h2 className="text-success text-center">✅ Resultados</h2>
+            <h4 className="text-primary">📊 Costo Total: {solution.total_cost}</h4>
+            <h5>🛠 Solución Inicial:</h5>
+            {renderMatrixTable(solution.initial_solution)}
+            <h5>🏆 Solución Óptima:</h5>
+            {renderMatrixTable(solution.optimal_solution)}
+          </div>
+        )}
+
+        {/* ✅ NUEVO APARTADO DE ANÁLISIS DE SENSIBILIDAD */}
+        <div className="mt-5">
+            <h3 className="text-dark">📊 Análisis de Sensibilidad / Resultados obtenidos / Toma de decisiones</h3>
+            <div className="card shadow-lg p-4 bg-white">
+              <p className="text-muted">
+                Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de
+                redes.
+              </p>
+              <div
+                className="border p-3 bg-light"
+                style={{ minHeight: "150px", fontSize: "18px", textAlign: "center" }}
+              >
+                <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
+              </div>
+            </div>
+          </div>
+      </div>
     </div>
   );
 }
