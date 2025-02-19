@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes import optimization_routes
+from routes.optimization_routes_network import router as network_router  # ✅ Importa la ruta de redes
 
 app = FastAPI(title="Optimization API")
 
@@ -15,7 +16,8 @@ app.add_middleware(
 
 # Incluir las rutas del API
 app.include_router(optimization_routes.router, prefix="/api")
+app.include_router(network_router, prefix="/api")  # ✅ Añade la ruta para `/api/solve_network`
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
