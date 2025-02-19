@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from schemas.optimization_schemas import LinearProgrammingRequest, OptimizationResponse
 from services.optimization_service import solve_optimization
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
 
 @router.post("/solve_linear", response_model=OptimizationResponse)
 def solve_linear_programming(data: LinearProgrammingRequest):
