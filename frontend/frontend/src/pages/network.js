@@ -49,7 +49,7 @@ export default function NetworkPage() {
         <button onClick={() => router.push("/")} className="btn btn-light">
           ⬅ Regresar al Inicio
         </button>
-        <h1 className="text-white mx-auto">Optimización en Redes</h1>
+        <h3 className="text-white mx-auto">Optimización en Redes</h3>
       </nav>
 
       {/* Espacio para evitar solapamiento con el Navbar fijo */}
@@ -60,7 +60,7 @@ export default function NetworkPage() {
             {/* Agregar Nueva Arista */}
             <div className="col-md-6">
               <div className="card shadow-lg p-4">
-                <h2 className="text-primary">➕ Agregar Nueva Arista</h2>
+                <h4 className="text-primary">➕ Agregar Nueva Arista</h4>
                 <div className="row g-3 mt-3">
                   <div className="col-md-4">
                     <input
@@ -99,7 +99,7 @@ export default function NetworkPage() {
             {/* Aristas Ingresadas */}
             <div className="col-md-6">
               <div className="card shadow-lg p-4">
-                <h2 className="text-success">📌 Aristas Ingresadas</h2>
+                <h4 className="text-success">📌 Aristas Ingresadas</h4>
                 <ul className="list-group mt-3">
                   {graph.length > 0 ? (
                     graph.map(([u, v, w], index) => (
@@ -157,7 +157,7 @@ export default function NetworkPage() {
 
           {/* ✅ NUEVO APARTADO PARA ANÁLISIS DE SENSIBILIDAD */}
           <div className="mt-5">
-            <h2 className="text-dark">📊 Análisis de Sensibilidad / Resultados obtenidos / Toma de decisiones</h2>
+            <h3 className="text-dark">📊 Análisis de Sensibilidad / Resultados obtenidos / Toma de decisiones</h3>
             <div className="card shadow-lg p-4 bg-white">
               <p className="text-muted">
                 Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de
