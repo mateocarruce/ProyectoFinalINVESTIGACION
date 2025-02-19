@@ -9,14 +9,14 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-800">
       {/* Título principal */}
       <h1 className="text-4xl font-extrabold text-blue-600 mb-4">
-        Optimization Solver
+        Solucionador de Problemas
       </h1>
       <p className="text-lg text-gray-600 mb-6">
         Selecciona un módulo para resolver problemas de optimización.
       </p>
 
-      {/* Contenedor de opciones */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Contenedor de opciones con mayor separación */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-16">
         {/* Card: Programación Lineal */}
         <Link href="/linear">
           <div
@@ -52,12 +52,23 @@ export default function Home() {
             </p>
           </div>
         </Link>
-
       </div>
 
-      {/* Pie de página */}
-      <footer className="absolute bottom-4 text-gray-500">
-        <p>© 2025 Optimization Solver - Todos los derechos reservados</p>
+      {/* Sección Todos los Módulos con más espacio debajo */}
+      <div className="w-4/5 md:w-2/3 bg-white shadow-lg rounded-lg p-6 text-center mb-16">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">📌 Todos los Módulos</h2>
+        <p className="text-gray-700">
+          Aquí puedes acceder a cada uno de los métodos de optimización disponibles.
+        </p>
+      </div>
+
+      {/* Pie de página más pequeño */}
+      <footer className="mt-10 text-gray-500 text-center text-xs">
+        <p>© 2025 Solucionador de Optimización - Todos los derechos reservados</p>
+        <p className="mt-1 text-gray-600">
+          <strong>Creadores:</strong> CÁCERES PÉREZ DANIELA ELIZABETH · CARRASCO AMAGUA MATEO FELIPE · 
+          JIMÉNEZ BASURTO DENNYS WLADIMIR · OLIVARES INTRIAGO MEYBILI TATIANA · SALAS CUEVA LESLY SALOMÉ
+        </p>
       </footer>
     </div>
   );
