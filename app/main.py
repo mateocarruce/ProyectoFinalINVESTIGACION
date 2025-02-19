@@ -14,7 +14,7 @@ app.add_middleware(
 )
 
 # Incluir las rutas del API
-app.include_router(optimization_routes.router, prefix="/api")
+app.include_router(optimization_routes.router)
 
 if __name__ == "__main__":
     import uvicorn
