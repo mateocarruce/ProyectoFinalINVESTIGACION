@@ -9,6 +9,16 @@ from algorithms.transportation import (
 )
 from algorithms.network_optimization import dijkstra_algorithm
 
+def calculate_total_cost(solution, costs):
+    """
+    Calcula el costo total de la solución basada en la matriz de costos.
+    """
+    total_cost = 0
+    for i in range(len(solution)):
+        for j in range(len(solution[i])):
+            total_cost += solution[i][j] * costs[i][j] 
+    return total_cost
+
 def solve_optimization(problem_type, data):
     print(f"🚀 Recibida solicitud para {problem_type} con datos:", data)
 
@@ -38,6 +48,9 @@ def solve_optimization(problem_type, data):
                 initial_solution = vogel_approximation_method(supply, demand, costs)
             else:
                 return {"status": "error", "message": "Método inválido"}
+            
+            optimal_solution = modi_method(initial_solution, costs)
+            total_cost = calculate_total_cost(optimal_solution, costs) 
 
             # Aplicar MODI
             optimal_solution = modi_method(initial_solution, costs)
@@ -46,7 +59,8 @@ def solve_optimization(problem_type, data):
             response = {
                 "status": "success",
                 "initial_solution": initial_solution.tolist(),
-                "optimal_solution": optimal_solution
+                "optimal_solution": optimal_solution,
+                "total_cost": total_cost
             }
             print("📩 Respuesta enviada al frontend:", response)  # ✅ Verificar respuesta
 
