@@ -123,7 +123,7 @@ export default function NetworkPage() {
           {/* Resultados */}
           {solution && (
             <div className="mt-5">
-              <h2 className="text-success">✅ Resultados de la Optimización</h2>
+              <h2 className="text-success">✅ Resultados de la Optimización-</h2>
 
               {/* Contenedor de Resultados en una sola fila */}
               <div className="d-flex flex-wrap justify-content-center mt-4 gap-3">
