@@ -313,7 +313,7 @@ export default function LinearPage() {
               {solution.solution.graph && (
                 <div className="mt-3 text-center">
                   <Image
-                    src={`http://127.0.0.1:8000${solution.solution.graph}`}
+                    src={`http://127.0.0.1:8000/static/graph_with_table.png`}
                     alt="Gráfico de solución"
                     width={500}
                     height={500}
@@ -346,12 +346,15 @@ export default function LinearPage() {
           <Modal.Title className="text-primary">Detalles del Gráfico</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
-        {solution && solution.solution && (
-          <div>
-          <h3>Gráfico:</h3>
-           <Image src={`http://127.0.0.1:8000/static/${solution.solution.graph}`} alt="Graph with table" width={500} height={500} />
-         </div>
-        )}
+        {solution && solution.solution && solution.solution.graph && (
+            <Image
+              src={`http://127.0.0.1:8000/static/${solution.solution.graph}`}
+              alt="Gráfico ampliado"
+              width={600}
+              height={600}
+              className="img-fluid rounded"
+            />
+          )}
 
         </Modal.Body>
       </Modal>
