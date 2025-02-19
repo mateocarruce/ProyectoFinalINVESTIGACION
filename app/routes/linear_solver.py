@@ -42,16 +42,20 @@ def solve_linear(data: dict):
         # Análisis de sensibilidad solo se aplica a métodos de programación lineal
         sensitivity = analyze_sensitivity(data, solution) if method != "graphical" else None
 
-        # En tu método solve_linear:
+     # En tu método solve_linear:
         response = {"solution": solution, "sensitivity": sensitivity}
-        response['solution']['graph'] = "/public/graph_with_table.png"
+        if method == "graphical":
+            response["solution"]["graph"] = "/static/graph_with_table.png"
+        else:
+            response["solution"]["graph"] = None
 
         print("Respuesta del backend:", response)  # Para depuración
         return response
+
     except Exception as e:
         print("Error en solve_linear:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
     # En el método gráfico (supongamos que es dentro de 'solve_graphical')
 def save_graph_to_file():
-    graph_path = "public/graph_with_table.png"  # Guardar la imagen en la carpeta pública
+    graph_path = "static/graph_with_table.png"  # Guardar la imagen en la carpeta pública
     # Código para generar el gráfico y guardarlo en graph_path
