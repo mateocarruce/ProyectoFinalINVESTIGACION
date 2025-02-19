@@ -1,142 +1,163 @@
+"use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { solveNetwork } from "../services/networkService";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function NetworkPage() {
   const [graph, setGraph] = useState([]);
   const [solution, setSolution] = useState(null);
   const [edgeData, setEdgeData] = useState({ from: "", to: "", weight: "" });
+  const router = useRouter();
 
   const addEdge = () => {
     if (!edgeData.from || !edgeData.to || !edgeData.weight) {
       alert("Todos los campos son obligatorios.");
       return;
     }
-
     setGraph((prevGraph) => [...prevGraph, [edgeData.from, edgeData.to, parseInt(edgeData.weight)]]);
     setEdgeData({ from: "", to: "", weight: "" });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Enviando datos al backend:", graph); // ✅ Depuración
+    console.log("Enviando datos al backend:", graph);
     const data = { graph };
 
     const result = await solveNetwork(data);
     setSolution(result);
   };
 
-
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-4">Optimización en Redes</h1>
-
-      {/* Entrada de Nodos y Aristas */}
-      <div className="bg-gray-100 p-4 rounded shadow-md">
-        <h2 className="text-lg font-semibold mb-2">➕ Agregar Arista</h2>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            placeholder="Nodo origen"
-            className="border p-2 rounded w-1/3"
-            value={edgeData.from}
-            onChange={(e) => setEdgeData({ ...edgeData, from: e.target.value })}
-          />
-          <input
-            type="text"
-            placeholder="Nodo destino"
-            className="border p-2 rounded w-1/3"
-            value={edgeData.to}
-            onChange={(e) => setEdgeData({ ...edgeData, to: e.target.value })}
-          />
-          <input
-            type="number"
-            placeholder="Peso"
-            className="border p-2 rounded w-1/3"
-            value={edgeData.weight}
-            onChange={(e) => setEdgeData({ ...edgeData, weight: e.target.value })}
-          />
-        </div>
-        <button className="bg-blue-600 text-white p-2 rounded w-full mt-2" onClick={addEdge}>
-          ➕ Agregar Arista
+    <div className="container-fluid bg-light min-vh-100">
+      {/* Navbar */}
+      <nav className="navbar navbar-dark bg-dark p-3">
+        <button onClick={() => router.push("/")} className="btn btn-light">
+          ⬅ Regresar al Inicio
         </button>
-      </div>
+        <h1 className="text-white mx-auto">Optimización en Redes</h1>
+      </nav>
 
-      {/* Lista de aristas ingresadas */}
-      <div className="mt-4">
-        <h2 className="text-lg font-bold">📌 Aristas Ingresadas</h2>
-        <ul className="bg-gray-200 p-2 rounded mt-2">
-          {graph.map(([u, v, w], index) => (
-            <li key={index} className="text-gray-700">
-              🔹 {u} → {v} | Peso: {w}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Botón Resolver */}
-      <button onClick={handleSubmit} className="bg-green-600 text-white p-2 rounded w-full mt-4">
-        🚀 Resolver
-      </button>
-
-      {/* Resultados */}
-      {solution && (
-        <div className="mt-6 p-4 bg-gray-100 rounded shadow-md">
-          <h2 className="text-xl font-bold text-green-700">✅ Solución</h2>
-          {solution.shortest_path && (
-            <div>
-              <h3 className="font-semibold">🔹 Ruta más corta</h3>
-              <p>🔹 Peso total: {solution.shortest_path.total_weight}</p>
-              <p>🔹 Camino: {solution.shortest_path.node_order.join(" → ")}</p>
-              <p>🔹 Inicio: {solution.shortest_path.start_node}</p>
-              <p>🔹 Fin: {solution.shortest_path.end_node}</p>
-              <img src={`data:image/png;base64,${solution.shortest_path.graph_image}`} alt="Ruta más corta" />
-            </div>
-          )}
-
-          {solution.longest_path && (
-            <div>
-              <h3 className="font-semibold">🔹 Ruta más larga</h3>
-              <p>🔹 Peso total: {solution.longest_path.total_weight}</p>
-              <p>🔹 Camino: {solution.longest_path.node_order.join(" → ")}</p>
-              <p>🔹 Inicio: {solution.longest_path.start_node}</p>
-              <p>🔹 Fin: {solution.longest_path.end_node}</p>
-              <img src={`data:image/png;base64,${solution.longest_path.graph_image}`} alt="Ruta más larga" />
-            </div>
-          )}
-
-          {solution.mst && (
-            <div>
-              <h3 className="font-semibold">🔹 Árbol de Expansión Mínima</h3>
-              <p>🔹 Peso total: {solution.mst.total_weight}</p>
-              <img src={`data:image/png;base64,${solution.mst.graph_image}`} alt="Árbol de Expansión Mínima" />
-            </div>
-          )}
-
-          {solution.max_flow && (
-            <div>
-              <h3 className="font-semibold">🔹 Flujo Máximo</h3>
-              <p>🔹 Flujo total: {solution.max_flow.max_flow}</p>
-              <p>🔹 Nodo de inicio: {solution.max_flow.start_node}</p>
-              <p>🔹 Nodo final: {solution.max_flow.end_node}</p>
-              <img src={`data:image/png;base64,${solution.max_flow.graph_image}`} alt="Flujo Máximo" />
-            </div>
-          )}
-
-          {solution.min_cost_flow && (
-            <div>
-              <h3 className="font-semibold">🔹 Flujo de Costo Mínimo</h3>
-              <img
-                src={`data:image/png;base64,${solution.min_cost_flow.graph_image}`}
-                alt="Flujo de Costo Mínimo"
-                className="mt-2 rounded"
+      <div className="container text-center mt-5">
+        {/* Sección de Ingreso */}
+        <div className="card shadow-lg p-4 mx-auto" style={{ maxWidth: "600px" }}>
+          <h2 className="text-primary">➕ Agregar Nueva Arista</h2>
+          <div className="row g-3 mt-3">
+            <div className="col-md-4">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nodo origen"
+                value={edgeData.from}
+                onChange={(e) => setEdgeData({ ...edgeData, from: e.target.value })}
               />
-              <p className="text-gray-700 mt-2">🔹 <strong>Costo total:</strong> {solution.min_cost_flow.total_cost}</p>
-              <h4 className="font-semibold mt-2">Detalles del Flujo</h4>
-              <pre className="bg-gray-200 p-2 rounded">{JSON.stringify(solution.min_cost_flow.flow_distribution, null, 2)}</pre>
             </div>
-          )}
+            <div className="col-md-4">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nodo destino"
+                value={edgeData.to}
+                onChange={(e) => setEdgeData({ ...edgeData, to: e.target.value })}
+              />
+            </div>
+            <div className="col-md-4">
+              <input
+                type="number"
+                className="form-control"
+                placeholder="Peso"
+                value={edgeData.weight}
+                onChange={(e) => setEdgeData({ ...edgeData, weight: e.target.value })}
+              />
+            </div>
+          </div>
+          <button className="btn btn-primary mt-3 w-100" onClick={addEdge}>
+            ➕ Agregar Arista
+          </button>
         </div>
-      )}
+
+        {/* Lista de Aristas */}
+        <div className="card shadow-lg p-4 mt-4 mx-auto" style={{ maxWidth: "600px" }}>
+          <h2 className="text-success">📌 Aristas Ingresadas</h2>
+          <ul className="list-group mt-3">
+            {graph.length > 0 ? (
+              graph.map(([u, v, w], index) => (
+                <li key={index} className="list-group-item">
+                  🔹 {u} → {v} | Peso: {w}
+                </li>
+              ))
+            ) : (
+              <p className="text-muted">No hay aristas ingresadas aún.</p>
+            )}
+          </ul>
+        </div>
+
+        {/* Botón Resolver */}
+        <button onClick={handleSubmit} className="btn btn-success mt-4 w-50">
+          🚀 Resolver
+        </button>
+
+        {/* Resultados */}
+        {solution && (
+          <div className="mt-5">
+            <h2 className="text-success">✅ Resultados de la Optimización</h2>
+
+            {/* Contenedor de Resultados en una sola fila */}
+            <div className="d-flex flex-wrap justify-content-center mt-4 gap-3">
+              {solution.shortest_path && (
+                <div className="card shadow-lg" style={{ width: "300px" }}>
+                  <div className="card-body text-center">
+                    <h5 className="text-primary">🔹 Ruta más corta</h5>
+                    <p className="text-muted">Peso total: {solution.shortest_path.total_weight}</p>
+                    <img src={`data:image/png;base64,${solution.shortest_path.graph_image}`} alt="Ruta más corta" className="img-fluid rounded mt-2" />
+                  </div>
+                </div>
+              )}
+
+              {solution.longest_path && (
+                <div className="card shadow-lg" style={{ width: "300px" }}>
+                  <div className="card-body text-center">
+                    <h5 className="text-primary">🔹 Ruta más larga</h5>
+                    <p className="text-muted">Peso total: {solution.longest_path.total_weight}</p>
+                    <img src={`data:image/png;base64,${solution.longest_path.graph_image}`} alt="Ruta más larga" className="img-fluid rounded mt-2" />
+                  </div>
+                </div>
+              )}
+
+              {solution.mst && (
+                <div className="card shadow-lg" style={{ width: "300px" }}>
+                  <div className="card-body text-center">
+                    <h5 className="text-primary">🔹 Árbol de Expansión Mínima</h5>
+                    <p className="text-muted">Peso total: {solution.mst.total_weight}</p>
+                    <img src={`data:image/png;base64,${solution.mst.graph_image}`} alt="Árbol de Expansión Mínima" className="img-fluid rounded mt-2" />
+                  </div>
+                </div>
+              )}
+
+              {/* Flujo Máximo Mejorado */}
+              {solution.max_flow && (
+                <div className="card shadow-lg" style={{ width: "300px" }}>
+                  <div className="card-body text-center">
+                    <h5 className="text-primary">🔹 Flujo Máximo</h5>
+                    <p className="text-muted">Flujo total: {solution.max_flow.max_flow}</p>
+                    <img src={`data:image/png;base64,${solution.max_flow.graph_image}`} alt="Flujo Máximo" className="img-fluid rounded mt-2" />
+
+                    {/* Iteraciones */}
+                    <h5 className="mt-3 text-primary">🔄 Iteraciones</h5>
+                    <ul className="list-group list-group-flush">
+                      {solution.max_flow.iterations.map((step, index) => (
+                        <li key={index} className="list-group-item">
+                          🔹 Iteración {index + 1}: Camino {step.path} | Capacidad {step.capacity}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

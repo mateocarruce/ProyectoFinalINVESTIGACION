@@ -107,56 +107,55 @@ def minimum_spanning_tree(graph):
     }
 
 def max_flow_algorithm(graph, source, sink):
-    """Flujo Máximo con detalle del flujo por nodo"""
+    """Flujo Máximo con detalle del flujo por nodo e iteraciones"""
     G = nx.DiGraph()
+    
+    # Agregar aristas con capacidad
     for u, v, w in graph:
         G.add_edge(u, v, capacity=w)
 
-    flow_value, flow_dict = nx.maximum_flow(G, source, sink)
+    # Inicializar variables
+    flow_value = 0
+    iterations = []
+    residual_graph = G.copy()
 
+    # Aplicar algoritmo de Edmonds-Karp
+    while True:
+        try:
+            # Encontrar camino aumentante con BFS
+            path = nx.shortest_path(residual_graph, source=source, target=sink, weight=None)
+            min_capacity = min(residual_graph[u][v]["capacity"] for u, v in zip(path, path[1:]))
+            
+            # Guardar la iteración
+            iterations.append({
+                "path": " → ".join(path),
+                "capacity": min_capacity
+            })
+
+            # Actualizar capacidades del grafo residual
+            for u, v in zip(path, path[1:]):
+                residual_graph[u][v]["capacity"] -= min_capacity
+                if residual_graph[u][v]["capacity"] == 0:
+                    residual_graph.remove_edge(u, v)
+
+            # Acumular flujo
+            flow_value += min_capacity
+
+        except nx.NetworkXNoPath:
+            # No hay más caminos aumentantes
+            break
+
+    # Generar imagen del flujo máximo
     image = generate_graph_image(graph, title="Flujo Máximo")
 
     return {
         "max_flow": flow_value,
-        "flow_distribution": flow_dict,
+        "iterations": iterations,
         "start_node": source,
         "end_node": sink,
         "graph_image": image
     }
 
-def min_cost_flow_algorithm(graph):
-    """Flujo de Costo Mínimo en una Red Dirigida"""
-    G = nx.DiGraph()
-
-    # Agregar aristas con pesos y capacidades
-    for u, v, w in graph:
-        G.add_edge(u, v, weight=w, capacity=w)  
-
-    # 🔹 Fuente y sumidero definidos automáticamente (primer y último nodo del grafo)
-    source = list(G.nodes)[0]  # Primer nodo
-    sink = list(G.nodes)[-1]    # Último nodo
-
-    # 🔹 Asignar demanda/suministro a los nodos
-    supply = sum(w for _, _, w in graph)  # Oferta total
-    demand = -supply  # Demanda total
-
-    G.nodes[source]["demand"] = supply
-    G.nodes[sink]["demand"] = demand
-
-    try:
-        # Aplicar algoritmo de Flujo de Costo Mínimo
-        flow_cost, flow_dict = nx.network_simplex(G)
-
-        # Generar imagen del grafo con flujo de costo mínimo
-        image = generate_graph_image(graph, title="Flujo de Costo Mínimo")
-
-        return {
-            "total_cost": flow_cost,
-            "flow_distribution": flow_dict,
-            "graph_image": image
-        }
-    except nx.NetworkXUnfeasible:
-        return {"error": "❌ La red no es factible para el flujo de costo mínimo. Verifica la demanda y oferta en los nodos."}
 
 def solve_all_problems(graph):
     """Resuelve todos los problemas y devuelve datos completos"""
@@ -167,6 +166,5 @@ def solve_all_problems(graph):
         "longest_path": longest_path(graph),
         "mst": minimum_spanning_tree(graph),
         "max_flow": max_flow_algorithm(graph, source, sink),
-        "min_cost_flow": min_cost_flow_algorithm(graph),
-    }
+        }
 
