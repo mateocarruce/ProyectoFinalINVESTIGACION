@@ -1,74 +1,360 @@
-import { useState } from "react";
+"use client";
+import React, { useState } from "react";
 import { solveLinear } from "../services/linearService";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import "bootstrap/dist/css/bootstrap.min.css";
+import { Modal } from "react-bootstrap";
 
 export default function LinearPage() {
-  const [formData, setFormData] = useState({ c: "", A_ub: "", b_ub: "" });
+  const [method, setMethod] = useState("simplex");
+  const [objective, setObjective] = useState("max");
+  const [numVariables, setNumVariables] = useState(2);
+  const [numConstraints, setNumConstraints] = useState(2);
+  const [modelGenerated, setModelGenerated] = useState(false);
+  const [objectiveCoeffs, setObjectiveCoeffs] = useState([]);
+  const [constraints, setConstraints] = useState([]);
   const [solution, setSolution] = useState(null);
   const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Genera el modelo dinámico (función objetivo y restricciones)
+  const generateModel = () => {
+    const n = Number(numVariables);
+    const m = Number(numConstraints);
+    setObjectiveCoeffs(new Array(n).fill(""));
+    setConstraints(
+      new Array(m).fill(null).map(() => ({
+        coeffs: new Array(n).fill(""),
+        sign: "<=",
+        rhs: ""
+      }))
+    );
+    setModelGenerated(true);
+  };
+
+  // Limpia el formulario (reset de todos los estados)
+  const clearForm = () => {
+    setMethod("simplex");
+    setObjective("max");
+    setNumVariables(2);
+    setNumConstraints(2);
+    setObjectiveCoeffs([]);
+    setConstraints([]);
+    setModelGenerated(false);
+    setSolution(null);
+    setError(null);
+  };
+
+  // Actualiza el valor de un coeficiente de la función objetivo
+  const handleObjectiveCoeffChange = (index, value) => {
+    const newCoeffs = [...objectiveCoeffs];
+    newCoeffs[index] = value;
+    setObjectiveCoeffs(newCoeffs);
+  };
+
+  // Actualiza el coeficiente de una restricción dada (fila y columna)
+  const handleConstraintCoeffChange = (row, col, value) => {
+    const newConstraints = constraints.map((rowData, i) =>
+      i === row
+        ? { ...rowData, coeffs: rowData.coeffs.map((c, j) => (j === col ? value : c)) }
+        : rowData
+    );
+    setConstraints(newConstraints);
+  };
+
+  // Actualiza el signo de una restricción
+  const handleConstraintSignChange = (row, value) => {
+    const newConstraints = constraints.map((rowData, i) =>
+      i === row ? { ...rowData, sign: value } : rowData
+    );
+    setConstraints(newConstraints);
+  };
+
+  // Actualiza el RHS de una restricción
+  const handleConstraintRHSChange = (row, value) => {
+    const newConstraints = constraints.map((rowData, i) =>
+      i === row ? { ...rowData, rhs: value } : rowData
+    );
+    setConstraints(newConstraints);
+  };
+
+  // Recopila los datos y envía la petición al backend
+  const solveProblem = async () => {
+    // Genera nombres de variables: x1, x2, ..., x_n
+    const variables = Array.from({ length: objectiveCoeffs.length }, (_, i) => `x${i + 1}`);
+    const requestData = {
+      objective,
+      variables,
+      objective_coeffs: objectiveCoeffs.map(Number),
+      constraints: constraints.map((c) => ({
+        coeffs: c.coeffs.map(Number),
+        sign: c.sign,
+        rhs: Number(c.rhs)
+      })),
+      method
+    };
 
     try {
-      // Convertir inputs a arrays JSON válidos
-      const parsedData = {
-        c: JSON.parse(formData.c),
-        A_ub: JSON.parse(formData.A_ub),
-        b_ub: JSON.parse(formData.b_ub),
-      };
-
-      const result = await solveLinear(parsedData);
+      const result = await solveLinear(requestData);
       setSolution(result);
       setError(null);
     } catch (err) {
-      setError("Formato de entrada inválido. Usa corchetes [] correctamente.");
+      console.error(err);
+      setError("Error al conectar con el backend.");
     }
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Programación Lineal</h1>
-      <form onSubmit={handleSubmit}>
-        <label className="block mt-2">Coeficientes de la función objetivo (c):</label>
-        <input
-          type="text"
-          className="border p-2 w-full"
-          value={formData.c}
-          onChange={(e) => setFormData({ ...formData, c: e.target.value })}
-          placeholder='Ej: [-5, -4]' required
-        />
-
-        <label className="block mt-2">Restricciones (A_ub):</label>
-        <input
-          type="text"
-          className="border p-2 w-full"
-          value={formData.A_ub}
-          onChange={(e) => setFormData({ ...formData, A_ub: e.target.value })}
-          placeholder='Ej: [[1, 1], [2, 1]]' required
-        />
-
-        <label className="block mt-2">Valores de restricciones (b_ub):</label>
-        <input
-          type="text"
-          className="border p-2 w-full"
-          value={formData.b_ub}
-          onChange={(e) => setFormData({ ...formData, b_ub: e.target.value })}
-          placeholder='Ej: [5, 8]' required
-        />
-
-        <button type="submit" className="bg-blue-600 text-white p-2 mt-4">
-          Resolver
+    <div className="container-fluid bg-light min-vh-100">
+      {/* Navbar fijo */}
+      <nav className="navbar navbar-dark bg-dark p-3 fixed-top">
+        <button onClick={() => router.push("/")} className="btn btn-light">
+          ⬅ Regresar al Inicio
         </button>
-      </form>
+        <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
+      </nav>
 
-      {error && <p className="text-red-500 mt-4">{error}</p>}
+      {/* Espacio para evitar solapamiento con el Navbar fijo */}
+      <div className="pt-5 mt-5">
+        <div className="container my-4">
+          {/* Configuración del Modelo */}
+          <div className="card shadow-lg p-4 mb-4">
+            <h4 className="text-primary">Configuración del Modelo</h4>
+            <div className="row mt-3">
+              <div className="col-md-3">
+                <label>Método</label>
+                <select
+                  className="form-control"
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value)}
+                >
+                  <option value="simplex">Simplex</option>
+                  <option value="two_phase">Dos Fases</option>
+                  <option value="m_big">Gran M</option>
+                  <option value="dual">Dual</option>
+                  <option value="graphical">Gráfico</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label>Tipo de Objetivo</label>
+                <select
+                  className="form-control"
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                >
+                  <option value="max">Maximizar</option>
+                  <option value="min">Minimizar</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label># Variables</label>
+                <select
+                  className="form-control"
+                  value={numVariables}
+                  onChange={(e) => setNumVariables(e.target.value)}
+                >
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <option key={i} value={i + 1}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label># Restricciones</label>
+                <select
+                  className="form-control"
+                  value={numConstraints}
+                  onChange={(e) => setNumConstraints(e.target.value)}
+                >
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <option key={i} value={i + 1}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="row mt-3">
+              <div className="col-md-6">
+                <button className="btn btn-primary w-100" onClick={generateModel}>
+                  Generar Modelo
+                </button>
+              </div>
+              <div className="col-md-6">
+                <button className="btn btn-danger w-100" onClick={clearForm}>
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
 
-      {solution && (
-        <div className="mt-4 p-4 bg-gray-100">
-          <h2 className="text-xl font-bold">Solución</h2>
-          <pre>{JSON.stringify(solution, null, 2)}</pre>
+          {/* Si se generó el modelo, se muestran las secciones de Función Objetivo y Restricciones */}
+          {modelGenerated && (
+            <>
+              {/* Función Objetivo */}
+              <div className="card shadow-lg p-4 mb-4">
+                <h4 className="text-primary">Función Objetivo</h4>
+                <div className="row mt-3">
+                  {objectiveCoeffs.map((coef, index) => (
+                    <div key={index} className="col-md-2 d-flex align-items-center">
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder={`x${index + 1}`}
+                        value={coef}
+                        onChange={(e) => handleObjectiveCoeffChange(index, e.target.value)}
+                        required
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Restricciones */}
+              <div className="card shadow-lg p-4 mb-4">
+                <h4 className="text-primary">Restricciones</h4>
+                {constraints.map((constraint, i) => (
+                  <div key={i} className="row mb-3 align-items-center">
+                    {constraint.coeffs.map((coef, j) => (
+                      <div key={j} className="col-md-2 d-flex align-items-center">
+                        <input
+                          type="number"
+                          className="form-control"
+                          placeholder={`x${j + 1}`}
+                          value={coef}
+                          onChange={(e) => handleConstraintCoeffChange(i, j, e.target.value)}
+                          required
+                        />
+                      </div>
+                    ))}
+                    <div className="col-md-2">
+                      <select
+                        className="form-control"
+                        value={constraint.sign}
+                        onChange={(e) => handleConstraintSignChange(i, e.target.value)}
+                      >
+                        <option value="<=">≤</option>
+                        <option value=">=">≥</option>
+                        <option value="=">=</option>
+                      </select>
+                    </div>
+                    <div className="col-md-2">
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="RHS"
+                        value={constraint.rhs}
+                        onChange={(e) => handleConstraintRHSChange(i, e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-center mb-4">
+                <button className="btn btn-success w-50" onClick={solveProblem}>
+                  Resolver
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Mostrar errores */}
+          {error && (
+            <div className="alert alert-danger text-center" role="alert">
+              {error}
+            </div>
+          )}
+
+          {/* Resultados */}
+          {solution && solution.solution && (
+            <div className="card shadow-lg p-4 mb-4">
+              <h4 className="text-success">Solución</h4>
+              <p>
+                <strong>Estado:</strong> {solution.solution.status}
+              </p>
+              <p>
+                <strong>Valor Óptimo:</strong> {solution.solution.objective_value}
+              </p>
+              <h5>Valores de Variables:</h5>
+              <ul className="list-group">
+                {Object.entries(solution.solution.variable_values).map(([key, val]) => (
+                  <li key={key} className="list-group-item">
+                    {key}: {val.toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+              {solution.solution.artificial_variables && (
+                <div className="mt-3">
+                  <h5>Variables Artificiales:</h5>
+                  {Array.isArray(solution.solution.artificial_variables) ? (
+                    <ul className="list-group">
+                      {solution.solution.artificial_variables.map((val, index) => (
+                        <li key={index} className="list-group-item">
+                          a{index + 1}: {val.toFixed(2)}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul className="list-group">
+                      {Object.entries(solution.solution.artificial_variables).map(([key, val]) => (
+                        <li key={key} className="list-group-item">
+                          {key}: {val.toFixed(2)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+              {solution.solution.graph && (
+                <div className="mt-3 text-center">
+                  <Image
+                    src={`http://127.0.0.1:8000${solution.solution.graph}`}
+                    alt="Gráfico de solución"
+                    width={500}
+                    height={500}
+                    className="img-fluid rounded"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setShowModal(true)}
+                  />
+                </div>
+              )}
+              {solution.sensitivity && (
+                <div className="mt-3">
+                  <h5>Análisis de Sensibilidad:</h5>
+                  <ul className="list-group">
+                    {Object.entries(solution.sensitivity).map(([key, val]) => (
+                      <li key={key} className="list-group-item">
+                        {key}: {val.toFixed(2)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Modal para mostrar el gráfico ampliado */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="text-primary">Detalles del Gráfico</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+        {solution && solution.solution && (
+          <div>
+          <h3>Gráfico:</h3>
+           <Image src={`http://127.0.0.1:8000/static/${solution.solution.graph}`} alt="Graph with table" width={500} height={500} />
+         </div>
+        )}
+
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }
