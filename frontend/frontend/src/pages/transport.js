@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { solveTransport } from "../services/transportService";
+import "bootstrap/dist/css/bootstrap.min.css";  // 📌 Importamos Bootstrap
 
 export default function TransportPage() {
   const [numSuppliers, setNumSuppliers] = useState(3);
@@ -13,7 +14,6 @@ export default function TransportPage() {
   const [solution, setSolution] = useState(null);
   const [error, setError] = useState(null);
 
-  // 🔹 Actualizar número de suministros y reiniciar valores
   const handleNumSuppliersChange = (e) => {
     const newNum = Number(e.target.value);
     setNumSuppliers(newNum);
@@ -21,7 +21,6 @@ export default function TransportPage() {
     setCosts(Array.from({ length: newNum }, () => new Array(numDemands).fill(0)));
   };
 
-  // 🔹 Actualizar número de demandas y reiniciar valores
   const handleNumDemandsChange = (e) => {
     const newNum = Number(e.target.value);
     setNumDemands(newNum);
@@ -31,21 +30,18 @@ export default function TransportPage() {
     );
   };
 
-  // 🔹 Actualizar valores de oferta (supply)
   const handleSupplyChange = (index, value) => {
     const newSupply = [...supply];
     newSupply[index] = Number(value);
     setSupply(newSupply);
   };
 
-  // 🔹 Actualizar valores de demanda (demand)
   const handleDemandChange = (index, value) => {
     const newDemand = [...demand];
     newDemand[index] = Number(value);
     setDemand(newDemand);
   };
 
-  // 🔹 Actualizar valores de costos en la matriz
   const handleCostChange = (i, j, value) => {
     setCosts((prevCosts) => {
       const updatedCosts = prevCosts.map((row) => [...row]);
@@ -69,16 +65,13 @@ export default function TransportPage() {
     }
   };
 
-  // 🔹 Función para mostrar una matriz como tabla
   const renderMatrixTable = (matrix) => (
-    <table className="border-collapse border border-gray-500 mt-2">
+    <table className="table table-bordered mt-3">
       <tbody>
         {matrix.map((row, i) => (
           <tr key={i}>
             {row.map((cell, j) => (
-              <td key={j} className="border border-gray-400 p-2 text-center">
-                {cell}
-              </td>
+              <td key={j} className="text-center">{cell}</td>
             ))}
           </tr>
         ))}
@@ -87,41 +80,43 @@ export default function TransportPage() {
   );
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4">🚚 Problema de Transporte</h1>
+    <div className="container mt-5">
+      <h1 className="text-center text-primary mb-4">🚚 Problema de Transporte</h1>
 
-      {/* Sección de parámetros */}
-      <div className="flex gap-4 mb-4">
-        <label>
-          🚛 Número de Suministros:
+      <div className="row">
+        {/* Número de Suministros */}
+        <div className="col-md-6">
+          <label className="form-label">🚛 Número de Suministros:</label>
           <input
             type="number"
-            className="border p-2 ml-2"
+            className="form-control"
             min="1"
             value={numSuppliers}
             onChange={handleNumSuppliersChange}
           />
-        </label>
-        <label>
-          🏢 Número de Demandas:
+        </div>
+
+        {/* Número de Demandas */}
+        <div className="col-md-6">
+          <label className="form-label">🏢 Número de Demandas:</label>
           <input
             type="number"
-            className="border p-2 ml-2"
+            className="form-control"
             min="1"
             value={numDemands}
             onChange={handleNumDemandsChange}
           />
-        </label>
+        </div>
       </div>
 
       {/* Sección para ingresar oferta (Supply) */}
-      <h3 className="text-lg font-semibold">📦 Oferta (Supply)</h3>
-      <div className="flex gap-2 mt-2">
+      <h3 className="mt-4">📦 Oferta (Supply)</h3>
+      <div className="input-group">
         {supply.map((value, i) => (
           <input
             key={i}
             type="number"
-            className="border p-2 w-16"
+            className="form-control"
             value={value}
             onChange={(e) => handleSupplyChange(i, e.target.value)}
           />
@@ -129,13 +124,13 @@ export default function TransportPage() {
       </div>
 
       {/* Sección para ingresar demanda (Demand) */}
-      <h3 className="text-lg font-semibold mt-4">🏭 Demanda (Demand)</h3>
-      <div className="flex gap-2 mt-2">
+      <h3 className="mt-4">🏭 Demanda (Demand)</h3>
+      <div className="input-group">
         {demand.map((value, i) => (
           <input
             key={i}
             type="number"
-            className="border p-2 w-16"
+            className="form-control"
             value={value}
             onChange={(e) => handleDemandChange(i, e.target.value)}
           />
@@ -144,20 +139,18 @@ export default function TransportPage() {
 
       {/* Tabla para ingresar costos */}
       <div className="mt-4">
-        <h3 className="text-lg font-semibold">💲 Matriz de Costos</h3>
-        <table className="border-collapse border border-gray-500 mt-2">
+        <h3>💲 Matriz de Costos</h3>
+        <table className="table table-bordered">
           <tbody>
             {costs.map((row, i) => (
               <tr key={i}>
                 {row.map((cost, j) => (
-                  <td key={j} className="border border-gray-400 p-2">
+                  <td key={j}>
                     <input
                       type="number"
-                      className="w-16 border p-1"
+                      className="form-control"
                       value={cost}
-                      onChange={(e) =>
-                        handleCostChange(i, j, e.target.value)
-                      }
+                      onChange={(e) => handleCostChange(i, j, e.target.value)}
                     />
                   </td>
                 ))}
@@ -168,10 +161,10 @@ export default function TransportPage() {
       </div>
 
       {/* Método de selección */}
-      <label className="block mt-4">
+      <label className="mt-4">
         📌 Método Inicial:
         <select
-          className="border p-2 ml-2"
+          className="form-select mt-2"
           value={method}
           onChange={(e) => setMethod(e.target.value)}
         >
@@ -182,30 +175,32 @@ export default function TransportPage() {
       </label>
 
       {/* Botón para resolver */}
-      <button
-        className="bg-blue-600 text-white p-2 mt-4 rounded"
-        onClick={handleSubmit}
-      >
+      <button className="btn btn-primary w-100 mt-3" onClick={handleSubmit}>
         🚀 Resolver
       </button>
 
       {/* Sección de resultados */}
       {solution && solution.status === "success" && (
-        <div className="mt-4 p-4 bg-gray-100">
-          <h2 className="text-xl font-bold text-green-600">
+        <div className="mt-4 p-4 bg-light rounded border">
+          {/* 🔹 Mensaje de balanceo */}
+          {solution.balance_message && (
+            <p className="alert alert-warning text-center">{solution.balance_message}</p>
+          )}
+
+          <h2 className="text-success text-center">
             📊 Costo Total: {solution.total_cost}
           </h2>
 
-          <h3 className="text-lg font-semibold mt-4">🛠 Solución Inicial:</h3>
+          <h3 className="mt-4">🛠 Solución Inicial:</h3>
           {renderMatrixTable(solution.initial_solution)}
 
-          <h3 className="text-lg font-semibold mt-4">🏆 Solución Óptima:</h3>
+          <h3 className="mt-4">🏆 Solución Óptima:</h3>
           {renderMatrixTable(solution.optimal_solution)}
         </div>
       )}
 
       {/* Error */}
-      {error && <p className="text-red-500 mt-4">{error}</p>}
+      {error && <p className="alert alert-danger mt-4 text-center">{error}</p>}
     </div>
   );
 }

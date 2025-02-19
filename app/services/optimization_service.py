@@ -34,8 +34,18 @@ def solve_optimization(problem_type, data):
             demand = data["demand"]
             costs = np.array(data["costs"], dtype=float)
 
-            # Balancear el problema
+            # Guardamos el tamaño original
+            original_supply_len = len(supply)
+            original_demand_len = len(demand)
+
+            # 🔍 Verificar si se necesita balancear el problema
             supply, demand, costs = balance_transportation_problem(supply, demand, costs)
+
+            balance_message = None
+            if len(supply) > original_supply_len:
+                balance_message = "Se agregó un suministro ficticio para balancear el problema."
+            elif len(demand) > original_demand_len:
+                balance_message = "Se agregó una demanda ficticia para balancear el problema."
 
             # Seleccionar método inicial
             method = data.get("method", "northwest")
@@ -60,7 +70,8 @@ def solve_optimization(problem_type, data):
                 "status": "success",
                 "initial_solution": initial_solution.tolist(),
                 "optimal_solution": optimal_solution,
-                "total_cost": total_cost
+                "total_cost": total_cost,
+                "balance_message": balance_message
             }
             print("📩 Respuesta enviada al frontend:", response)  # ✅ Verificar respuesta
 
