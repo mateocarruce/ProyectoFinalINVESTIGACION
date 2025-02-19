@@ -59,3 +59,4 @@ def solve_linear(data: dict):
 def save_graph_to_file():
     graph_path = "static/graph_with_table.png"  # Guardar la imagen en la carpeta pública
     # Código para generar el gráfico y guardarlo en graph_path
+
