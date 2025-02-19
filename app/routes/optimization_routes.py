@@ -4,10 +4,6 @@ from services.optimization_service import solve_optimization
 
 router = APIRouter()
 
-@router.post("/solve_linear", response_model=OptimizationResponse)
-def solve_linear_programming(data: LinearProgrammingRequest):
-    return solve_optimization("linear", data.model_dump())
-
 @router.post("/solve_transport")
 def solve_transportation(data: dict):
     return solve_optimization("transport", data)
