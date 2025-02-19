@@ -153,6 +153,37 @@ def calculate_potentials(allocation, costs):
     print(f"✅ Potenciales corregidos: U = {U}, V = {V}")
     return U, V
 
+def calculate_potentials(allocation, costs):
+    """
+    Calcula los potenciales U y V para el método MODI.
+    """
+    rows, cols = allocation.shape
+    U = [None] * rows
+    V = [None] * cols
+
+    # 🔹 Inicializamos el primer potencial arbitrariamente en 0
+    U[0] = 0  
+
+    assigned_cells = [(i, j) for i in range(rows) for j in range(cols) if allocation[i][j] > 0]
+
+    updated = True
+    while updated:
+        updated = False
+        for i, j in assigned_cells:
+            if U[i] is not None and V[j] is None:
+                V[j] = costs[i][j] - U[i]
+                updated = True
+            elif V[j] is not None and U[i] is None:
+                U[i] = costs[i][j] - V[j]
+                updated = True
+
+    # ✅ Asignar 0 a cualquier valor None restante
+    U = [0 if u is None else u for u in U]
+    V = [0 if v is None else v for v in V]
+
+    print(f"✅ Potenciales corregidos: U = {U}, V = {V}")
+    return U, V
+
 def calculate_reduced_costs(U, V, costs):
     """
     Calcula los costos reducidos Z[i][j] = C[i][j] - (U[i] + V[j]).
@@ -162,26 +193,32 @@ def calculate_reduced_costs(U, V, costs):
 
     for i in range(rows):
         for j in range(cols):
-            reduced_costs[i][j] = costs[i][j] - (U[i] + V[j])
+            if U[i] is not None and V[j] is not None:
+                reduced_costs[i][j] = costs[i][j] - (U[i] + V[j])
+            else:
+                reduced_costs[i][j] = float('inf')  # ✅ Evita errores si hay valores None
 
     return reduced_costs
 
 def find_entering_cell(reduced_costs):
     """
-    Encuentra la celda con el menor costo reducido negativo (más negativo).
+    Encuentra la celda con el menor costo reducido negativo.
     Si todos los costos reducidos son positivos o cero, la solución es óptima.
     """
-    min_value = 0
-    entering_cell = None
+    min_value = np.min(reduced_costs)
+    if min_value >= 0:
+        return None  # La solución ya es óptima
 
-    rows, cols = reduced_costs.shape
-    for i in range(rows):
-        for j in range(cols):
-            if reduced_costs[i][j] < min_value:  # Se busca el más negativo
-                min_value = reduced_costs[i][j]
-                entering_cell = (i, j)
+    # 🔍 Filtrar solo las celdas que no están asignadas en la solución inicial
+    min_cost_cell = None
+    for i in range(reduced_costs.shape[0]):
+        for j in range(reduced_costs.shape[1]):
+            if reduced_costs[i, j] < min_value and reduced_costs[i, j] < 0:
+                min_cost_cell = (i, j)
+                min_value = reduced_costs[i, j]
 
-    return entering_cell
+    print(f"🔄 Celda entrante seleccionada: {min_cost_cell} con costo reducido {min_value}")
+    return min_cost_cell
 
 def find_loop(allocation, entering_cell):
     """
@@ -190,7 +227,6 @@ def find_loop(allocation, entering_cell):
     i, j = entering_cell
     rows, cols = allocation.shape
 
-    # Encontrar filas y columnas involucradas
     row_links = {idx: set() for idx in range(rows)}
     col_links = {idx: set() for idx in range(cols)}
 
@@ -234,16 +270,22 @@ def update_allocation(allocation, loop):
     """
     Ajusta la solución basada en el ciclo MODI, sumando/restando cantidades.
     """
-    # Determinar los valores en las celdas alternas del ciclo
-    values = [allocation[i, j] for i, j in loop[1::2]]
+    values = [allocation[i, j] for i, j in loop[1::2] if allocation[i, j] > 0]
+    
+    if not values:
+        print("❌ Error: No se encontraron valores en la iteración MODI.")
+        return allocation
+
     theta = min(values)  # Cantidad mínima a restar en el ciclo
 
-    # Actualizar la asignación con +theta y -theta en posiciones alternas
+    # ✅ Evita restar valores negativos
     for idx, (i, j) in enumerate(loop):
         if idx % 2 == 0:
             allocation[i, j] += theta
         else:
             allocation[i, j] -= theta
+            if allocation[i, j] < 0:
+                allocation[i, j] = 0  # ✅ Evita valores negativos en la matriz
 
     return allocation
 
@@ -251,23 +293,22 @@ def modi_method(allocation, costs, max_iterations=100):
     """
     Método MODI para optimizar la solución inicial.
     """
-    allocation = np.array(allocation, dtype=float)  # ✅ Convertimos todo a float
+    allocation = np.array(allocation, dtype=float)
     costs = np.array(costs, dtype=float)
-    iterations = 0  # Contador de iteraciones
+    iterations = 0
 
     print("✅ Matriz inicial en MODI:\n", allocation)
 
     while True:
-        if iterations >= max_iterations:  # ✅ Evitar bucles infinitos
+        if iterations >= max_iterations:
             print("❌ Límite de iteraciones alcanzado en MODI.")
             return allocation.tolist()
 
-        iterations += 1  # Aumentar el contador
+        iterations += 1
 
         # Paso 1: Calcular potenciales (U y V)
         U, V = calculate_potentials(allocation, costs)
 
-        # 🔍 Verificar si hay valores None en U y V
         if None in U or None in V:
             print("❌ Error en MODI: Potenciales contienen None.")
             return allocation.tolist()
@@ -275,7 +316,6 @@ def modi_method(allocation, costs, max_iterations=100):
         # Paso 2: Calcular costos reducidos
         reduced_costs = calculate_reduced_costs(U, V, costs)
 
-        # 🔍 Verificar si hay valores None en reduced_costs
         if np.isnan(reduced_costs).any():
             print("❌ Error en MODI: Costos reducidos contienen NaN.")
             return allocation.tolist()
@@ -284,7 +324,7 @@ def modi_method(allocation, costs, max_iterations=100):
         entering_cell = find_entering_cell(reduced_costs)
 
         if entering_cell is None:
-            # Si no hay costos reducidos negativos, la solución es óptima
+            print("✅ La solución es óptima.")
             return allocation.tolist()
 
         # Paso 4: Encontrar el ciclo de intercambio
