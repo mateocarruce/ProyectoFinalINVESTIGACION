@@ -145,6 +145,20 @@ export default function NetworkPage() {
                             style={{ cursor: "pointer" }}
                             onClick={() => handleImageClick(solution[key])}
                           />
+
+                          {/* 🔄 Iteraciones del Flujo Máximo */}
+                          {key === "max_flow" && solution.max_flow.iterations && solution.max_flow.iterations.length > 0 && (
+                            <>
+                              <h5 className="mt-3 text-primary">🔄 Iteraciones</h5>
+                              <ul className="list-group list-group-flush">
+                                {solution.max_flow.iterations.map((step, index) => (
+                                  <li key={index} className="list-group-item">
+                                    🔹 Iteración {index + 1}: Camino {step.path} | Capacidad {step.capacity}
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
