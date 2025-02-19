@@ -10,15 +10,21 @@ from algorithms.transportation import (
 from algorithms.network_optimization import dijkstra_algorithm
 
 def solve_optimization(problem_type, data):
+    print(f"🚀 Recibida solicitud para {problem_type} con datos:", data)
+
     if problem_type == "linear":
         return solve_linear_program(data["c"], data["A_ub"], data["b_ub"])
     elif problem_type == "transport":
         try:
+            # 🔍 Verificar si los datos existen
+            if "supply" not in data or "demand" not in data or "costs" not in data:
+                return {"status": "error", "message": "Faltan datos en la solicitud"}
+
             supply = data["supply"]
             demand = data["demand"]
-            costs = np.array(data["costs"], dtype=float)  # Convertir costos a float
+            costs = np.array(data["costs"], dtype=float)
 
-            # Verificar si está balanceado
+            # Balancear el problema
             supply, demand, costs = balance_transportation_problem(supply, demand, costs)
 
             # Seleccionar método inicial
@@ -33,14 +39,18 @@ def solve_optimization(problem_type, data):
             else:
                 return {"status": "error", "message": "Método inválido"}
 
-            # Aplicar método MODI para optimizar
+            # Aplicar MODI
             optimal_solution = modi_method(initial_solution, costs)
 
-            return {
+            # 🔍 Verificar la respuesta antes de enviarla
+            response = {
                 "status": "success",
-                "initial_solution": initial_solution.tolist(),  # ✅ Se mantiene .tolist() porque es un numpy array
-                "optimal_solution": optimal_solution  # ✅ No usar .tolist() porque ya es una lista
+                "initial_solution": initial_solution.tolist(),
+                "optimal_solution": optimal_solution
             }
+            print("📩 Respuesta enviada al frontend:", response)  # ✅ Verificar respuesta
+
+            return response
 
         except Exception as e:
             print(f"❌ Error en solve_optimization: {str(e)}")

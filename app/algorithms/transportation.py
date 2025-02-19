@@ -8,6 +8,11 @@ def balance_transportation_problem(supply, demand, costs):
     total_supply = sum(supply)
     total_demand = sum(demand)
 
+    print(f"📌 Total Supply: {total_supply}, Total Demand: {total_demand}")  # 🔍 Agregar log
+
+    if None in supply or None in demand or None in costs:
+        raise ValueError("❌ Se encontraron valores None en supply, demand o costs.")
+
     if total_supply > total_demand:
         # 🔹 Agregar columna ficticia con demanda extra
         demand.append(total_supply - total_demand)
@@ -22,48 +27,48 @@ def balance_transportation_problem(supply, demand, costs):
 
 def northwest_corner_method(supply, demand):
     """
-    Método de la Esquina Noroeste para encontrar una solución inicial.
+    Método de Esquina Noroeste para encontrar una solución inicial.
     """
     supply = supply.copy()
     demand = demand.copy()
-    allocation = np.zeros((len(supply), len(demand)))
+    allocation = np.zeros((len(supply), len(demand)), dtype=float)  # ✅ Convertir a float
 
     i, j = 0, 0
     while i < len(supply) and j < len(demand):
         min_val = min(supply[i], demand[j])
-        allocation[i][j] = min_val
+        allocation[i, j] = min_val  # ✅ Asegurar que no queden valores None
         supply[i] -= min_val
         demand[j] -= min_val
 
         if supply[i] == 0:
             i += 1
-        else:
+        if demand[j] == 0:
             j += 1
 
+    print("✅ Solución Inicial (Esquina Noroeste):\n", allocation)
     return allocation
 
 def minimum_cost_method(supply, demand, costs):
     """
-    Método del Costo Mínimo para encontrar una solución inicial.
+    Método de Costo Mínimo para encontrar una solución inicial.
     """
     supply = supply.copy()
     demand = demand.copy()
-    allocation = np.zeros((len(supply), len(demand)))
+    costs = np.array(costs, dtype=float)  # ✅ Convertir costos a float
+    allocation = np.zeros((len(supply), len(demand)), dtype=float)  # ✅ Convertir a float
 
-    while np.any(supply) and np.any(demand):
-        # Encontrar la celda con el menor costo
-        min_cost_idx = np.unravel_index(np.argmin(costs, axis=None), costs.shape)
-        i, j = min_cost_idx
+    # Obtener lista de todas las celdas ordenadas por costo mínimo
+    cost_indices = [(i, j) for i in range(len(supply)) for j in range(len(demand))]
+    cost_indices.sort(key=lambda x: costs[x[0], x[1]])  # Ordenar por costo mínimo
 
-        # Asignar la cantidad máxima posible
-        min_val = min(supply[i], demand[j])
-        allocation[i][j] = min_val
-        supply[i] -= min_val
-        demand[j] -= min_val
+    for i, j in cost_indices:
+        if supply[i] > 0 and demand[j] > 0:
+            min_val = min(supply[i], demand[j])
+            allocation[i, j] = min_val  # ✅ Asegurar que no queden valores None
+            supply[i] -= min_val
+            demand[j] -= min_val
 
-        # Eliminar filas o columnas agotadas
-        costs[i, j] = np.inf  # Marcar como usada
-
+    print("✅ Solución Inicial (Costo Mínimo):\n", allocation)
     return allocation
 
 def vogel_approximation_method(supply, demand, costs):
@@ -119,31 +124,33 @@ def modi_method(allocation, costs):
 
 def calculate_potentials(allocation, costs):
     """
-    Calcula los potenciales U y V resolviendo el sistema de ecuaciones U[i] + V[j] = C[i][j].
+    Calcula los potenciales U y V para el método MODI.
     """
     rows, cols = allocation.shape
-    U = [None] * rows  # Potenciales de fila
-    V = [None] * cols  # Potenciales de columna
-    U[0] = 0  # Se fija U[0] = 0 para empezar
+    U = [None] * rows
+    V = [None] * cols
 
-    # Lista de ecuaciones a resolver
-    equations = []
-    known_values = {}
+    # ✅ Fijar el primer potencial arbitrariamente en 0
+    U[0] = 0  
 
-    for i in range(rows):
-        for j in range(cols):
-            if allocation[i][j] > 0:  # Solo se usa celdas con asignaciones
-                equations.append((i, j))
-    
-    while equations:
-        i, j = equations.pop(0)
-        if U[i] is not None and V[j] is None:
-            V[j] = costs[i][j] - U[i]
-        elif V[j] is not None and U[i] is None:
-            U[i] = costs[i][j] - V[j]
-        elif U[i] is None and V[j] is None:
-            equations.append((i, j))  # Si ninguno es conocido, reintentar después
-    
+    assigned_cells = [(i, j) for i in range(rows) for j in range(cols) if allocation[i][j] > 0]
+
+    for _ in range(len(assigned_cells)):  # Iterar hasta que todos los valores sean asignados
+        for i, j in assigned_cells:
+            if U[i] is not None and V[j] is None:
+                V[j] = costs[i][j] - U[i]
+            elif V[j] is not None and U[i] is None:
+                U[i] = costs[i][j] - V[j]
+
+    # 🔍 Verificar si aún hay valores None
+    if None in U or None in V:
+        print(f"❌ Error en calcular potenciales: U = {U}, V = {V}")
+        
+        # ✅ Asignar 0 a cualquier valor None restante para evitar fallos en MODI
+        U = [0 if u is None else u for u in U]
+        V = [0 if v is None else v for v in V]
+
+    print(f"✅ Potenciales corregidos: U = {U}, V = {V}")
     return U, V
 
 def calculate_reduced_costs(U, V, costs):
@@ -240,19 +247,38 @@ def update_allocation(allocation, loop):
 
     return allocation
 
-def modi_method(allocation, costs):
+def modi_method(allocation, costs, max_iterations=100):
     """
     Método MODI para optimizar la solución inicial.
     """
-    allocation = np.array(allocation)
-    costs = np.array(costs)
+    allocation = np.array(allocation, dtype=float)  # ✅ Convertimos todo a float
+    costs = np.array(costs, dtype=float)
+    iterations = 0  # Contador de iteraciones
+
+    print("✅ Matriz inicial en MODI:\n", allocation)
 
     while True:
+        if iterations >= max_iterations:  # ✅ Evitar bucles infinitos
+            print("❌ Límite de iteraciones alcanzado en MODI.")
+            return allocation.tolist()
+
+        iterations += 1  # Aumentar el contador
+
         # Paso 1: Calcular potenciales (U y V)
         U, V = calculate_potentials(allocation, costs)
 
+        # 🔍 Verificar si hay valores None en U y V
+        if None in U or None in V:
+            print("❌ Error en MODI: Potenciales contienen None.")
+            return allocation.tolist()
+
         # Paso 2: Calcular costos reducidos
         reduced_costs = calculate_reduced_costs(U, V, costs)
+
+        # 🔍 Verificar si hay valores None en reduced_costs
+        if np.isnan(reduced_costs).any():
+            print("❌ Error en MODI: Costos reducidos contienen NaN.")
+            return allocation.tolist()
 
         # Paso 3: Identificar la celda entrante
         entering_cell = find_entering_cell(reduced_costs)
