@@ -56,10 +56,15 @@ export default function Home() {
 
       {/* Sección Todos los Módulos con más espacio debajo */}
       <div className="w-4/5 md:w-2/3 bg-white shadow-lg rounded-lg p-6 text-center mb-16">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">📌 Todos los Módulos</h2>
-        <p className="text-gray-700">
-          Aquí puedes acceder a cada uno de los métodos de optimización disponibles.
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">📌 Resolver con los 3 Modelos</h2>
+        <p className="text-gray-700 mb-4">
+          Aquí puedes ejecutar la solución con todos los modelos disponibles.
         </p>
+        <Link href="/solve-all">
+          <div className="px-6 py-3 rounded-lg shadow-lg bg-red-500 text-white text-lg font-bold hover:bg-red-600 transition-all duration-300 cursor-pointer inline-block">
+            🔍 Ejecutar
+          </div>
+        </Link>
       </div>
 
       {/* Pie de página más pequeño */}

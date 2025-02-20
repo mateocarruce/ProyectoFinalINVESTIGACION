@@ -109,12 +109,17 @@ export default function LinearPage() {
   return (
     <div className="container-fluid bg-light min-vh-100">
       {/* Navbar fijo */}
-      <nav className="navbar navbar-dark bg-dark p-3 fixed-top">
-        <button onClick={() => router.push("/")} className="btn btn-light">
-          ⬅ Regresar al Inicio
-        </button>
-        <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
-      </nav>
+      <nav className="navbar navbar-dark bg-dark p-3">
+      <button onClick={() => router.push("/")} className="btn btn-light">
+        ⬅ Regresar al Inicio
+      </button>
+      <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
+    </nav>
+
+    {/* Espacio para evitar solapamiento con el Navbar */}
+    <div className="container mt-5"></div>
+
+      
 
       {/* Espacio para evitar solapamiento con el Navbar fijo */}
       <div className="pt-5 mt-5">
@@ -349,6 +354,19 @@ export default function LinearPage() {
 
         </Modal.Body>
       </Modal>
+
+      {/* ✅ NUEVO APARTADO DE ANÁLISIS DE SENSIBILIDAD */}
+      <div className="mt-5">
+          <h3 className="text-dark text-center">📊 Análisis de Sensibilidad</h3>
+          <div className="card shadow-lg p-4 bg-white">
+            <p className="text-muted text-center">
+              Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de la programación lineal.
+            </p>
+            <div className="border p-3 bg-light text-center" style={{ minHeight: "150px", fontSize: "18px" }}>
+              <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
+            </div>
+          </div>
+        </div>
     </div>
   );
 }
