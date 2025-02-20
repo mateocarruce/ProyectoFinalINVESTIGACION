@@ -324,18 +324,7 @@ export default function LinearPage() {
                   />
                 </div>
               )}
-              {solution.sensitivity && (
-                <div className="mt-3">
-                  <h5>Análisis de Sensibilidad:</h5>
-                  <ul className="list-group">
-                    {Object.entries(solution.sensitivity).map(([key, val]) => (
-                      <li key={key} className="list-group-item">
-                        {key}: {val.toFixed(2)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              
             </div>
           )}
         </div>
