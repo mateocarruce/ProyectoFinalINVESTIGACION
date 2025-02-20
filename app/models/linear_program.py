@@ -2,35 +2,37 @@ import pulp
 import re
 import numpy as np
 import matplotlib
+from fastapi.encoders import jsonable_encoder
+
 matplotlib.use('Agg')  # Usar un backend no interactivo
 import matplotlib.pyplot as plt
 from pulp import LpProblem, LpMaximize, LpMinimize, LpVariable, lpSum, value
 
 def sanitize_variable_name(name):
     """Corrige los nombres de variables para que sean válidos en PuLP."""
-    return re.sub(r'[^a-zA-Z0-9_]', '_', name)  # Reemplaza caracteres inválidos
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
 
 def solve_linear_problem(data):
     method = data.get("method", "simplex")  # Método por defecto: Simplex
 
     # Crear problema de programación lineal
-    pulp.LpMaximize if data["objective"] == "max" else pulp.LpMinimize
-
+    problem = pulp.LpProblem("Linear_Problem", 
+                             pulp.LpMaximize if data["objective"] == "max" else pulp.LpMinimize)
     # Definir variables de decisión
-    variables = {var: pulp.LpVariable(sanitize_variable_name(var), lowBound=0) for var in data["variables"]}
-
-    iterations = []  # Lista para almacenar las iteraciones y su progreso
+    variables = {var: pulp.LpVariable(sanitize_variable_name(var), lowBound=0) 
+                 for var in data["variables"]}
 
     # Diccionario para almacenar las variables artificiales
     artificial_variables = {}
 
-    if method == "two_phase" or method == "m_big":
+    if method in ["two_phase", "m_big"]:
         M = 10000  # Valor grande para Gran M, puedes ajustarlo según sea necesario
         for i, constraint in enumerate(data["constraints"]):
             if constraint["sign"] in [">=", "="]:
                 artificial_var = pulp.LpVariable(f"artificial_{i}", lowBound=0)
                 artificial_variables[f"artificial_{i}"] = artificial_var
-                lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]] for j in range(len(constraint["coeffs"])))
+                lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]]
+                                 for j in range(len(constraint["coeffs"])))
                 if method == "m_big":  # Gran M
                     if constraint["sign"] == ">=":
                         problem += lhs - artificial_var >= constraint["rhs"] - M * artificial_var
@@ -42,241 +44,85 @@ def solve_linear_problem(data):
                     elif constraint["sign"] == "=":
                         problem += lhs == constraint["rhs"]
 
-    # Agregar función objetivo
-    problem += pulp.lpSum(data["objective_coeffs"][i] * variables[var] for i, var in enumerate(data["variables"])), "Objective"
+    # Construir la función objetivo
+    if data["objective"] == "max" and method == "m_big":
+        # Penalizamos las variables artificiales para evitar que tengan valor en la solución
+        penalty = M * pulp.lpSum(artificial_variables[a] for a in artificial_variables)
+        objective_expr = (pulp.lpSum(data["objective_coeffs"][i] * variables[var]
+                         for i, var in enumerate(data["variables"])) - penalty)
+    else:
+        objective_expr = pulp.lpSum(data["objective_coeffs"][i] * variables[var]
+                                    for i, var in enumerate(data["variables"]))
+    
+    problem += objective_expr, "Objective"
 
     # Agregar restricciones (sin variables artificiales)
     for i, constraint in enumerate(data["constraints"]):
-        lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]] for j in range(len(constraint["coeffs"])))
+        lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]]
+                         for j in range(len(constraint["coeffs"])))
         if constraint["sign"] == "<=":
             problem += lhs <= constraint["rhs"]
-        elif constraint["sign"] == ">=":
-            continue
-        elif constraint["sign"] == "=":
-            continue
 
     # Selección del solver
-    solver = pulp.PULP_CBC_CMD(msg=True, logPath="solver_log.txt")  # Habilitar log del solver
+    solver = pulp.PULP_CBC_CMD(msg=True, logPath="solver_log.txt")
     problem.solve(solver)
+    
+    # Verificar el estado del problema
+    status = pulp.LpStatus[problem.status]
+    if status == "Infeasible":
+        return jsonable_encoder({"error": "El problema es infactible"})
+    elif status == "Unbounded":
+        return jsonable_encoder({"error": "El problema es no acotado"})
 
     # Leer el log de iteraciones y extraer el número de iteraciones
     with open("solver_log.txt", "r") as file:
         log_lines = file.readlines()
-    
-    # Buscar el número de iteraciones en el log (esto depende del solver y su salida)
     iteration_line = [line for line in log_lines if "iterations" in line]
     iterations_count = 0
     if iteration_line:
-        # Extraemos el número de iteraciones de la línea
         match = re.search(r'(\d+)\s+iterations', iteration_line[0])
         if match:
             iterations_count = int(match.group(1))
+    
     artificial_variables_cleaned = {
-        name: (value(artificial_variables[name]) if artificial_variables[name] is not None else 0)
-        for name in artificial_variables
-        }
-# Resultados con variables artificiales
-    solution = {
-    "status": pulp.LpStatus[problem.status],
-    "objective_value": pulp.value(problem.objective),
-    "variable_values": {var: pulp.value(variables[var]) for var in data["variables"]},
-    "artificial_variables": artificial_variables_cleaned if (method == "m_big" or method == "two_phase") else None,
-    "iterations": iterations_count  # Número de iteraciones
-}
-
-
-    return solution
-
-def solve_m_big_linear_problem(objective_coeffs, variable_names, constraints, objective_type, M=10000):
-    # Gran M: Crear el modelo con variables artificiales y grandes valores M
-    model = LpProblem("M_Big_Problem", LpMaximize if objective_type == "max" else LpMinimize)
-
-    # Crear variables
-    variables = {name: LpVariable(name, lowBound=0) for name in variable_names}
-
-    # Agregar variables artificiales y restricciones
-    artificial_variables = []  # Lista para almacenar las variables artificiales
-    for i, constraint in enumerate(constraints):
-        # Si la restricción es >=, agregamos una variable artificial
-        if constraint['sign'] == '>=':
-            artificial_var = LpVariable(f"a{i+1}", lowBound=0)  # Variable artificial
-            artificial_variables.append(artificial_var)
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) - artificial_var >= constraint['rhs'] - M * artificial_var
-        elif constraint['sign'] == '=':
-            artificial_var = LpVariable(f"a{i+1}", lowBound=0)  # Variable artificial
-            artificial_variables.append(artificial_var)
-            # Para una restricción de igualdad, necesitamos dos restricciones: una >= y otra <=
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) - artificial_var >= constraint['rhs']
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) + artificial_var <= constraint['rhs']
-        else:
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) >= constraint['rhs']
-
-    # Agregar la función objetivo
-    model += lpSum([objective_coeffs[i] * variables[variable_names[i]] for i in range(len(variable_names))]), "Objective"
-
-    # Resolver el modelo
-    model.solve()
-
-    artificial_variables_cleaned = {
-    f"a{i+1}": (value(var) if var is not None else 0)
-    for i, var in enumerate(artificial_variables)
+        f"a{i+1}": (value(var) if var is not None else 0)
+        for i, var in enumerate(artificial_variables.values())
     }
 
-
-    # Verificar si hay una solución factible
-    if value(model.objective) > 0:
-        solution = {
-        'status': 'Optimal' if value(model.objective) > 0 else 'Infeasible',
-        'objective_value': value(model.objective),
-        'variable_values': {name: value(variables[name]) for name in variable_names},
-        'artificial_variables': artificial_variables_cleaned,  # Incluimos las variables artificiales limpiadas
-        }
-
-    else:
-        solution = {
-            'status': 'Infeasible',
-            'objective_value': 0,
-            'variable_values': {name: 0 for name in variable_names},
-            'artificial_variables': {name: 0 for name in artificial_variables}
-        }
-
-    return solution
-
-def solve_two_phase_linear_problem(objective_coeffs, variable_names, constraints, objective_type):
-    # Fase 1: Crear el modelo con variables artificiales
-    model = LpProblem("Two_Phase_Problem", LpMinimize)  # Fase 1, minimización de las variables artificiales
-
-    # Crear variables
-    variables = {name: LpVariable(name, lowBound=0) for name in variable_names}
-
-    # Agregar variables artificiales y restricciones
-    artificial_variables = []
-    for i, constraint in enumerate(constraints):
-        # Si la restricción es >=, agregamos una variable artificial
-        if constraint['sign'] == '>=':
-            artificial_var = LpVariable(f"a{i+1}", lowBound=0)  # Variable artificial
-            artificial_variables.append(artificial_var)
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) - artificial_var >= constraint['rhs']
-        else:
-            # Aquí sería necesario ajustar para <=, pero para este ejemplo simplificamos
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) >= constraint['rhs']
-    
-    # Fase 2: Después de resolver Fase 1, optimizamos la función objetivo original
-    if objective_type == 'max':
-        model += lpSum([objective_coeffs[i] * variables[variable_names[i]] for i in range(len(variable_names))]), "Objective"
-
-    # Resolver el modelo
-    model.solve()
-
-    # Verificar si hay una solución factible
-    if value(model.objective) > 0:
-        # Modifica esta parte para incluir siempre las variables artificiales
-        solution = {
-            'status': 'Optimal' if value(model.objective) > 0 else 'Infeasible',
-            'objective_value': value(model.objective),
-            'variable_values': {name: value(variables[name]) for name in variable_names},
-            'artificial_variables': [value(var) for var in artificial_variables],  # Aseguramos que se incluya
-        }
-
-    else:
-        solution = {
-            'status': 'Infeasible',
-            'objective_value': 0,
-            'variable_values': {name: 0 for name in variable_names},
-            'artificial_variables': [0 for _ in artificial_variables]
-        }
-
-    return solution
-
-import pulp
-import re
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Usar un backend no interactivo
-import matplotlib.pyplot as plt
-from pulp import LpProblem, LpMaximize, LpMinimize, LpVariable, lpSum, value
-
-def sanitize_variable_name(name):
-    """Corrige los nombres de variables para que sean válidos en PuLP."""
-    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
-
-def solve_linear_problem(data):
-    method = data.get("method", "simplex")
-    # Crear problema de programación lineal
-    problem = pulp.LpProblem("Linear_Problem", pulp.LpMaximize if data["objective"] == "max" else pulp.LpMinimize)
-    variables = {var: pulp.LpVariable(sanitize_variable_name(var), lowBound=0) for var in data["variables"]}
-    artificial_variables = {}
-    
-    if method in ["two_phase", "m_big"]:
-        M = 10000
-        for i, constraint in enumerate(data["constraints"]):
-            if constraint["sign"] in [">=", "="]:
-                artificial_var = pulp.LpVariable(f"artificial_{i}", lowBound=0)
-                artificial_variables[f"artificial_{i}"] = artificial_var
-                lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]] for j in range(len(constraint["coeffs"])))
-                if method == "m_big":
-                    if constraint["sign"] == ">=":
-                        problem += lhs - artificial_var >= constraint["rhs"] - M * artificial_var
-                    elif constraint["sign"] == "=":
-                        problem += lhs == constraint["rhs"]
-                else:
-                    if constraint["sign"] == ">=":
-                        problem += lhs - artificial_var >= constraint["rhs"]
-                    elif constraint["sign"] == "=":
-                        problem += lhs == constraint["rhs"]
-    
-    problem += pulp.lpSum(data["objective_coeffs"][i] * variables[var] for i, var in enumerate(data["variables"])), "Objective"
-    
-    for i, constraint in enumerate(data["constraints"]):
-        lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]] for j in range(len(constraint["coeffs"])))
-        if constraint["sign"] == "<=":
-            problem += lhs <= constraint["rhs"]
-    
-    solver = pulp.PULP_CBC_CMD(msg=True, logPath="solver_log.txt")
-    problem.solve(solver)
-    
-    with open("solver_log.txt", "r") as file:
-        log_lines = file.readlines()
-    iteration_line = [line for line in log_lines if "iterations" in line]
-    iterations_count = 0
-    if iteration_line:
-        import re
-        match = re.search(r'(\d+)\s+iterations', iteration_line[0])
-        if match:
-            iterations_count = int(match.group(1))
-    artificial_variables_cleaned = {
-        name: (value(artificial_variables[name]) if artificial_variables[name] is not None else 0)
-        for name in artificial_variables
-    }
-    
     solution = {
-        "status": pulp.LpStatus[problem.status],
+        "status": status,
         "objective_value": pulp.value(problem.objective),
-        "variable_values": {var: pulp.value(variables[var]) for var in data["variables"]},
+        "variable_values": {str(var): pulp.value(variables[var]) for var in data["variables"]},
         "artificial_variables": artificial_variables_cleaned if method in ["m_big", "two_phase"] else None,
         "iterations": iterations_count
     }
     
-    return solution
+    return jsonable_encoder(solution)
 
 def solve_m_big_linear_problem(objective_coeffs, variable_names, constraints, objective_type, M=10000):
     model = LpProblem("M_Big_Problem", LpMaximize if objective_type == "max" else LpMinimize)
     variables = {name: LpVariable(name, lowBound=0) for name in variable_names}
     artificial_variables = []
+    
     for i, constraint in enumerate(constraints):
         if constraint['sign'] == '>=':
             artificial_var = LpVariable(f"a{i+1}", lowBound=0)
             artificial_variables.append(artificial_var)
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) - artificial_var >= constraint['rhs'] - M * artificial_var
+            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] 
+                            for j in range(len(variable_names))]) - artificial_var >= constraint['rhs'] - M * artificial_var
         elif constraint['sign'] == '=':
             artificial_var = LpVariable(f"a{i+1}", lowBound=0)
             artificial_variables.append(artificial_var)
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) - artificial_var >= constraint['rhs']
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) + artificial_var <= constraint['rhs']
+            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] 
+                            for j in range(len(variable_names))]) - artificial_var >= constraint['rhs']
+            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] 
+                            for j in range(len(variable_names))]) + artificial_var <= constraint['rhs']
         else:
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) >= constraint['rhs']
+            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] 
+                            for j in range(len(variable_names))]) >= constraint['rhs']
     
-    model += lpSum([objective_coeffs[i] * variables[variable_names[i]] for i in range(len(variable_names))]), "Objective"
+    model += lpSum([objective_coeffs[i] * variables[variable_names[i]] 
+                    for i in range(len(variable_names))]), "Objective"
     model.solve()
     
     artificial_variables_cleaned = {
@@ -296,40 +142,74 @@ def solve_m_big_linear_problem(objective_coeffs, variable_names, constraints, ob
             'status': 'Infeasible',
             'objective_value': 0,
             'variable_values': {name: 0 for name in variable_names},
-            'artificial_variables': {name: 0 for name in artificial_variables}
+            'artificial_variables': {f"a{i+1}": 0 for i in range(len(artificial_variables))}
         }
+    
     return solution
-
 def solve_two_phase_linear_problem(objective_coeffs, variable_names, constraints, objective_type):
-    model = LpProblem("Two_Phase_Problem", LpMinimize)
+    # **Fase 1: Resolver para eliminar variables artificiales**
+    phase1 = LpProblem("Phase1", LpMinimize)
+
+    # Crear variables originales
     variables = {name: LpVariable(name, lowBound=0) for name in variable_names}
-    artificial_variables = []
+
+    # Diccionario para almacenar variables artificiales
+    artificial_vars = {}
+
+    # Agregar restricciones y variables artificiales
     for i, constraint in enumerate(constraints):
-        if constraint['sign'] == '>=':
-            artificial_var = LpVariable(f"a{i+1}", lowBound=0)
-            artificial_variables.append(artificial_var)
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) - artificial_var >= constraint['rhs']
-        else:
-            model += lpSum([constraint['coeffs'][j] * variables[variable_names[j]] for j in range(len(variable_names))]) >= constraint['rhs']
-    
-    if objective_type == 'max':
-        model += lpSum([objective_coeffs[i] * variables[variable_names[i]] for i in range(len(variable_names))]), "Objective"
-    model.solve()
-    
-    if value(model.objective) > 0:
-        solution = {
-            'status': 'Optimal' if value(model.objective) > 0 else 'Infeasible',
-            'objective_value': value(model.objective),
-            'variable_values': {name: value(variables[name]) for name in variable_names},
-            'artificial_variables': [value(var) for var in artificial_variables],
+        lhs = lpSum(constraint["coeffs"][j] * variables[variable_names[j]] for j in range(len(constraint["coeffs"])))
+        if constraint["sign"] in [">=", "="]:  
+            art = LpVariable(f"artificial_{i+1}", lowBound=0)  
+            artificial_vars[f"artificial_{i+1}"] = art  
+            phase1 += lhs - art == constraint["rhs"]
+        elif constraint["sign"] == "<=":  
+            phase1 += lhs <= constraint["rhs"]
+
+    # **Función objetivo Fase 1:** Minimizar la suma de las artificiales
+    phase1 += lpSum(artificial_vars[a] for a in artificial_vars), "Phase1_Objective"
+
+    # Resolver Fase 1
+    phase1.solve()
+
+    # Revisar si la solución de la fase 1 es factible
+    artificial_values = {a: value(artificial_vars[a]) for a in artificial_vars}
+    artificial_sum = sum(artificial_values.values())
+
+    if artificial_sum > 1e-5:  # Si las artificiales no son cero, el problema es infactible
+        return {
+            "status": "Infeasible",
+            "message": "No existe solución factible (fase 1).",
+            "artificial_variables": artificial_values
         }
-    else:
-        solution = {
-            'status': 'Infeasible',
-            'objective_value': 0,
-            'variable_values': {name: 0 for name in variable_names},
-            'artificial_variables': [0 for _ in artificial_variables]
-        }
+
+    # **Fase 2: Resolver el problema original sin variables artificiales**
+    phase2 = LpProblem("Phase2", LpMaximize if objective_type == "max" else LpMinimize)
+
+    # Función objetivo Fase 2
+    phase2 += lpSum(objective_coeffs[i] * variables[variable_names[i]] for i in range(len(variable_names))), "Objective"
+
+    # Agregar restricciones sin variables artificiales
+    for i, constraint in enumerate(constraints):
+        lhs = lpSum(constraint["coeffs"][j] * variables[variable_names[j]] for j in range(len(constraint["coeffs"])))
+        if constraint["sign"] == "<=":
+            phase2 += lhs <= constraint["rhs"]
+        elif constraint["sign"] == ">=":
+            phase2 += lhs >= constraint["rhs"]
+        elif constraint["sign"] == "=":
+            phase2 += lhs == constraint["rhs"]
+
+    # Resolver Fase 2
+    phase2.solve()
+
+    # Construir la respuesta final
+    solution = {
+        "status": pulp.LpStatus[phase2.status],
+        "objective_value": value(phase2.objective),
+        "variable_values": {name: value(variables[name]) for name in variable_names},
+        "artificial_variables": artificial_values  # **Se incluyen las artificiales de Fase 1**
+    }
+
     return solution
 
 def solve_graphical(data):
