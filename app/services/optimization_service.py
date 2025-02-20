@@ -1,5 +1,6 @@
-from algorithms.linear_programming import solve_linear_program
 import numpy as np
+from algorithms.linear_programming import solve_linear_program
+from algorithms.network_optimization import dijkstra_algorithm
 from algorithms.transportation import (
     balance_transportation_problem,
     northwest_corner_method,
@@ -7,7 +8,7 @@ from algorithms.transportation import (
     vogel_approximation_method,
     modi_method
 )
-from algorithms.network_optimization import dijkstra_algorithm
+
 
 def calculate_total_cost(solution, costs):
     """

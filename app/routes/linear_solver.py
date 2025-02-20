@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from models.linear_program import solve_linear_problem, solve_graphical, solve_two_phase_linear_problem, solve_m_big_linear_problem, solve_dual_linear_problem
-
-from utils.validations import validate_linear_problem
+from models.linear_program import solve_linear_problem, solve_graphical, solve_two_phase_linear_problem, \
+    solve_m_big_linear_problem, solve_dual_linear_problem
 from utils.sensitivity_analysis import analyze_sensitivity
+from utils.validations import validate_linear_problem
 
 router = APIRouter()
 

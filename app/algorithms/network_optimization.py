@@ -1,9 +1,10 @@
-import networkx as nx
-import matplotlib.pyplot as plt
-import io
 import base64
+import io
 
 import matplotlib
+import matplotlib.pyplot as plt
+import networkx as nx
+
 matplotlib.use('Agg')
 
 def generate_graph_image(graph, paths=None, title="Grafo"):

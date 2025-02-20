@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import optimization_routes
-from routes.optimization_routes_network import router as network_router  # ✅ Importa la ruta de redes
 from fastapi.staticfiles import StaticFiles
+
+from routes import optimization_routes
 from routes.linear_solver import router as linear_solver_router
+from routes.optimization_routes_network import router as network_router  # ✅ Importa la ruta de redes
 
 app = FastAPI(title="Optimization API")
 

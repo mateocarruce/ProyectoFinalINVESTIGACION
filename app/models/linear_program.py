@@ -1,7 +1,8 @@
-import pulp
 import re
-import numpy as np
+
 import matplotlib
+import numpy as np
+import pulp
 from fastapi.encoders import jsonable_encoder
 
 matplotlib.use('Agg')  # Usar un backend no interactivo
