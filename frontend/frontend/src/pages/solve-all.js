@@ -5,8 +5,8 @@ import LinearPage from "./linear";  // ✅ Importa linear.js correctamente
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function SolveAll() {
-  const [solution, setSolution] = useState(null);
-  const [error, setError] = useState(null);
+
+  const [error] = useState(null);
 
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
