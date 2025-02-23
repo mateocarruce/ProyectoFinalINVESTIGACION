@@ -1,51 +1,59 @@
-import { useState } from "react";
-import TransportPage from "./transport";  // ✅ Importa transport.js correctamente
-import NetworkPage from "./network";  // ✅ Importa network.js correctamente
-import LinearPage from "./linear";  // ✅ Importa linear.js correctamente
+"use client";
+import React, { useState } from "react";
+import { solveOptimization } from "../services/optimizationService";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-export default function SolveAll() {
+export default function SolveAllPage() {
+  const [optimizationData, setOptimizationData] = useState({});
   const [solution, setSolution] = useState(null);
+  const [explanation, setExplanation] = useState(null);  // ✅ Nuevo estado para la explicación
   const [error, setError] = useState(null);
 
+  const handleSolve = async () => {
+    setError(null);
+    setSolution(null);
+    setExplanation(null); // ✅ Resetear la explicación antes de la llamada a la API
+
+    try {
+      const response = await solveOptimization(optimizationData);
+      setSolution(response.solution);
+      setExplanation(response.explanation);  // ✅ Guardar la explicación en el estado
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
-    <div className="container-fluid bg-light min-vh-100 p-4">
-      <h1 className="text-center text-primary">📊 Optimización Completa del Negocio</h1>
+    <div className="container mt-4">
+      <h1>Optimización General</h1>
 
-      <div className="row mt-4">
-        {/* 📦 Sección de Programación Lineal */}
-        <div className="col-md-4">
-          <div className="card shadow-lg p-4">
-            <LinearPage />
-          </div>
+      {/* Botón para resolver */}
+      <button className="btn btn-primary" onClick={handleSolve}>
+        Resolver
+      </button>
+
+      {/* Mostrar solución si está disponible */}
+      {solution && (
+        <div className="mt-4">
+          <h3>Solución:</h3>
+          <p>{JSON.stringify(solution)}</p>
         </div>
+      )}
 
-        {/* 🚚 Sección de Transporte */}
-        <div className="col-md-4">
-          <div className="card shadow-lg p-4">
-            <TransportPage />
-          </div>
+      {/* Mostrar explicación de la IA si está disponible */}
+      {explanation && (
+        <div className="mt-4">
+          <h3>Explicación:</h3>
+          <p>{explanation}</p>
         </div>
+      )}
 
-        {/* 🌐 Sección de Redes */}
-        <div className="col-md-4">
-          <div className="card shadow-lg p-4">
-            <NetworkPage />
-          </div>
+      {/* Mostrar error si ocurre */}
+      {error && (
+        <div className="mt-4 alert alert-danger">
+          <strong>Error:</strong> {error}
         </div>
-      </div>
-
-      {/* 🔹 Análisis de Sensibilidad */}
-      <div className="mt-5 p-4 bg-white shadow-lg rounded border">
-        <h2 className="text-dark text-center">📊 Análisis de Sensibilidad</h2>
-        <p className="text-center text-muted">Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos.</p>
-        <div className="border p-3 bg-light" style={{ minHeight: "150px", fontSize: "18px", textAlign: "center" }}>
-          <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
-        </div>
-      </div>
-
-      {/* Error */}
-      {error && <p className="alert alert-danger mt-4 text-center">{error}</p>}
+      )}
     </div>
   );
 }
