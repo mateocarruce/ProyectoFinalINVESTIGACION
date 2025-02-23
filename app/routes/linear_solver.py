@@ -1,62 +1,63 @@
 from fastapi import APIRouter, HTTPException
-from models.linear_program import solve_linear_problem, solve_graphical, solve_two_phase_linear_problem, solve_m_big_linear_problem, solve_dual_linear_problem
-
+import google.generativeai as genai
+from models.linear_program import (
+    solve_linear_problem, solve_graphical, solve_two_phase_linear_problem,
+    solve_m_big_linear_problem, solve_dual_linear_problem
+)
 from utils.validations import validate_linear_problem
 from utils.sensitivity_analysis import analyze_sensitivity
 
 router = APIRouter()
 
+# Configurar Gemini con la clave de API
+genai.configure(api_key="TU_CLAVE_DE_API")
+
+
+def get_gemini_explanation(problem_description, solution):
+    """Genera una explicación usando Gemini basada en el problema y la solución"""
+    prompt = f"""
+    El usuario ha planteado el siguiente problema de programación lineal:
+
+    {problem_description}
+
+    Se ha resuelto utilizando un método de optimización. La solución obtenida es:
+
+    {solution}
+
+    Explica si esta es una buena solución en función del problema ingresado.
+    """
+    response = genai.generate_text(model="gemini-pro", prompt=prompt)
+    return response.text if response else "No se pudo generar una explicación."
+
+
 @router.post("/solve_linear")
 def solve_linear(data: dict):
     print("Datos recibidos:", data)
+
+    # Validar datos
     errors = validate_linear_problem(data)
     if errors:
         raise HTTPException(status_code=400, detail=errors)
-    
-    # Determinar el método a utilizar
-    method = data.get("method", "simplex")  # Método por defecto: Simplex
+
+    problem_description = data.get("description", "No se proporcionó una descripción del problema.")
+    method = data.get("method", "simplex")
+
     try:
         if method == "graphical":
-            solution = solve_graphical(data)  # Llamar al método gráfico
-        elif method == "two_phase":
-            # Llamar al método de Dos Fases
-            solution = solve_two_phase_linear_problem(
-                data["objective_coeffs"],
-                data["variables"],
-                data["constraints"],
-                data["objective"]
-            )
-        elif method == "m_big":  # Para el método Gran M
-            solution = solve_m_big_linear_problem(
-                data["objective_coeffs"],
-                data["variables"],
-                data["constraints"],
-                data["objective"]
-            )
+            solution = solve_graphical(data)
+        elif method == "two-phase":
+            solution = solve_two_phase_linear_problem(data)
+        elif method == "m-big":
+            solution = solve_m_big_linear_problem(data)
         elif method == "dual":
-            solution = solve_dual_linear_problem(data)    
-                
+            solution = solve_dual_linear_problem(data)
         else:
-            solution = solve_linear_problem(data)  # Llamar al método de programación lineal
+            solution = solve_linear_problem(data)
 
-        # Análisis de sensibilidad solo se aplica a métodos de programación lineal
-        sensitivity = analyze_sensitivity(data, solution) if method != "graphical" else None
+        # Obtener explicación con Gemini
+        explanation = get_gemini_explanation(problem_description, solution)
 
-     # En tu método solve_linear:
-        response = {"solution": solution, "sensitivity": sensitivity}
-        if method == "graphical":
-            response["solution"]["graph"] = "/static/graph_with_table.png"
-        else:
-            response["solution"]["graph"] = None
-
-        print("Respuesta del backend:", response)  # Para depuración
-        return response
+        return {"solution": solution, "explanation": explanation}
 
     except Exception as e:
-        print("Error en solve_linear:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
-    # En el método gráfico (supongamos que es dentro de 'solve_graphical')
-def save_graph_to_file():
-    graph_path = "static/graph_with_table.png"  # Guardar la imagen en la carpeta pública
-    # Código para generar el gráfico y guardarlo en graph_path
-

@@ -1,75 +1,40 @@
-"use client";
-import React, { useState } from "react";
-import { solveLinear } from "../services/linearService";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { Modal } from "react-bootstrap";
+import { useState } from "react";
+import solveLinear from "../services/api";
 
 export default function LinearPage() {
-  const [method, setMethod] = useState("simplex");
-  const [objective, setObjective] = useState("max");
-  const [numVariables, setNumVariables] = useState(2);
-  const [numConstraints, setNumConstraints] = useState(2);
-  const [modelGenerated, setModelGenerated] = useState(false);
-  const [objectiveCoeffs, setObjectiveCoeffs] = useState([]);
-  const [constraints, setConstraints] = useState([]);
-  const [solution, setSolution] = useState(null);
-  const [explanation, setExplanation] = useState(null);  // ✅ Nuevo estado para la explicación
-  const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+    const [problemDescription, setProblemDescription] = useState("");
+    const [data, setData] = useState({ method: "simplex", coefficients: [] });
+    const [solution, setSolution] = useState(null);
+    const [explanation, setExplanation] = useState("");
 
-  // Función para resolver el problema
-  const handleSolve = async () => {
-    setError(null);
-    setSolution(null);
-    setExplanation(null); // ✅ Resetear la explicación antes de la llamada a la API
+    const handleSolve = async () => {
+        try {
+            const response = await solveLinear({ ...data, description: problemDescription });
+            setSolution(response.solution);
+            setExplanation(response.explanation);
+        } catch (error) {
+            console.error("Error al resolver:", error);
+        }
+    };
 
-    try {
-      const response = await solveLinear({
-        method,
-        objective,
-        numVariables,
-        numConstraints,
-        objectiveCoeffs,
-        constraints,
-      });
-      setSolution(response.solution);
-      setExplanation(response.explanation);  // ✅ Guardar la explicación en el estado
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  return (
-    <div className="container mt-4">
-      <h1>Resolución de Programación Lineal</h1>
-
-      {/* Botón para resolver */}
-      <button className="btn btn-primary" onClick={handleSolve}>
-        Resolver
-      </button>
-
-      {/* Mostrar solución si está disponible */}
-      {solution && (
-        <div className="mt-4">
-          <h3>Solución Óptima:</h3>
-          <p>{JSON.stringify(solution)}</p>
+    return (
+        <div>
+            <h1>Resolver Problema Lineal</h1>
+            <textarea
+                placeholder="Describe tu problema aquí..."
+                value={problemDescription}
+                onChange={(e) => setProblemDescription(e.target.value)}
+            />
+            {/* Aquí irían los inputs para ingresar los valores del problema */}
+            <button onClick={handleSolve}>Resolver</button>
+            {solution && (
+                <div>
+                    <h2>Solución:</h2>
+                    <p>{JSON.stringify(solution)}</p>
+                    <h2>Explicación:</h2>
+                    <p>{explanation}</p>
+                </div>
+            )}
         </div>
-      )}
-
-      {/* Mostrar explicación de la IA si está disponible */}
-      {explanation && (
-        <div className="mt-4">
-          <h3>Explicación:</h3>
-          <p>{explanation}</p>
-        </div>
-      )}
-
-      {/* Mostrar error si ocurre */}
-      {error && (
-        <div className="mt-4 alert alert-danger">
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-    </div>
-  );
+    );
 }
