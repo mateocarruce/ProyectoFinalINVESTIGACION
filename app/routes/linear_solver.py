@@ -3,6 +3,8 @@ from models.linear_program import solve_linear_problem, solve_graphical, solve_t
 
 from utils.validations import validate_linear_problem
 from utils.sensitivity_analysis import analyze_sensitivity
+from utils.business_response import generate_business_response
+
 
 router = APIRouter()
 
@@ -41,9 +43,10 @@ def solve_linear(data: dict):
 
         # Análisis de sensibilidad solo se aplica a métodos de programación lineal
         sensitivity = analyze_sensitivity(data, solution) if method != "graphical" else None
+        business_response = generate_business_response(data.get("problem_text", ""), sensitivity)
 
      # En tu método solve_linear:
-        response = {"solution": solution, "sensitivity": sensitivity}
+        response = {"solution": solution, "sensitivity": sensitivity, "business_response": business_response}
         if method == "graphical":
             response["solution"]["graph"] = "/static/graph_with_table.png"
         else:

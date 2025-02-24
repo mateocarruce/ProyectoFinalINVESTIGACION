@@ -2,7 +2,7 @@ Welcome to the CBC MILP Solver
 Version: 2.10.3 
 Build Date: Dec 15 2019 
 
-command line - C:\Users\usuario\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\pulp\solverdir\cbc\win\64\cbc.exe C:\Users\usuario\AppData\Local\Temp\62da169771ac44f9bba6121537556fc6-pulp.mps -max -timeMode elapsed -branch -printingOptions all -solution C:\Users\usuario\AppData\Local\Temp\62da169771ac44f9bba6121537556fc6-pulp.sol (default strategy 1)
+command line - C:\Users\Tatiana\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\pulp\solverdir\cbc\win\64\cbc.exe C:\Users\Tatiana\AppData\Local\Temp\bb9f16c81a2043f58eb4c6a1750f00ca-pulp.mps -max -timeMode elapsed -branch -printingOptions all -solution C:\Users\Tatiana\AppData\Local\Temp\bb9f16c81a2043f58eb4c6a1750f00ca-pulp.sol (default strategy 1)
 At line 2 NAME          MODEL
 At line 3 ROWS
 At line 7 COLUMNS
@@ -13,11 +13,11 @@ Problem MODEL has 2 rows, 2 columns and 4 elements
 Coin0008I MODEL read with 0 errors
 Option for timeMode changed from cpu to elapsed
 Presolve 2 (0) rows, 2 (0) columns and 4 (0) elements
-0  Obj -0 Dual inf 8.0099998 (2)
-0  Obj -0 Dual inf 8.0099998 (2)
-2  Obj 260.2
-Optimal - objective value 260.2
-Optimal objective 260.2 - 2 iterations time 0.002
+0  Obj -0 Dual inf 22.01 (2)
+0  Obj -0 Dual inf 22.01 (2)
+2  Obj 384.12
+Optimal - objective value 384.12
+Optimal objective 384.12 - 2 iterations time 0.002
 Option for printingOptions changed from normal to all
-Total time (CPU seconds):       0.00   (Wallclock seconds):       0.00
+Total time (CPU seconds):       0.01   (Wallclock seconds):       0.01
 

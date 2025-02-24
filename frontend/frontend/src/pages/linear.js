@@ -18,6 +18,8 @@ export default function LinearPage() {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
+  const [problemText, setProblemText] = useState("");
+
 
   // Genera el modelo dinámico (función objetivo y restricciones)
   const generateModel = () => {
@@ -93,7 +95,8 @@ export default function LinearPage() {
         sign: c.sign,
         rhs: Number(c.rhs)
       })),
-      method
+      method,
+      problem_text: problemText
     };
 
     try {
@@ -110,16 +113,25 @@ export default function LinearPage() {
     <div className="container-fluid bg-light min-vh-100">
       {/* Navbar fijo */}
       <nav className="navbar navbar-dark bg-dark p-3">
-      <button onClick={() => router.push("/")} className="btn btn-light">
-        ⬅ Regresar al Inicio
-      </button>
-      <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
-    </nav>
+        <button onClick={() => router.push("/")} className="btn btn-light">
+          ⬅ Regresar al Inicio
+        </button>
+        <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
+      </nav>
 
-    {/* Espacio para evitar solapamiento con el Navbar */}
-    <div className="container mt-5"></div>
+      {/* Espacio para evitar solapamiento con el Navbar */}
+      <div className="container mt-5"></div>
 
-      
+      <div className="mb-4">
+        <label className="form-label fw-bold">Descripción del Problema</label>
+        <textarea
+          className="form-control"
+          placeholder="Ingrese el texto de su problema. Recuerde que los datos deben insertarse manualmente."
+          value={problemText}
+          onChange={(e) => setProblemText(e.target.value)}
+          rows={4}
+        />
+      </div>
 
       {/* Espacio para evitar solapamiento con el Navbar fijo */}
       <div className="pt-5 mt-5">
@@ -329,7 +341,7 @@ export default function LinearPage() {
                   />
                 </div>
               )}
-              
+
             </div>
           )}
         </div>
@@ -355,18 +367,31 @@ export default function LinearPage() {
         </Modal.Body>
       </Modal>
 
-      {/* ✅ NUEVO APARTADO DE ANÁLISIS DE SENSIBILIDAD */}
-      <div className="mt-5">
-          <h3 className="text-dark text-center">📊 Análisis de Sensibilidad</h3>
-          <div className="card shadow-lg p-4 bg-white">
-            <p className="text-muted text-center">
-              Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de la programación lineal.
-            </p>
-            <div className="border p-3 bg-light text-center" style={{ minHeight: "150px", fontSize: "18px" }}>
-              <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
-            </div>
+      {solution && (
+        <div className="card shadow-lg p-4 mb-4">
+          <h4 className="text-success">Solución</h4>
+          {/* ... detalles de la solución ... */}
+        </div>
+      )}
+
+      {/* Sección de Análisis de Sensibilidad y Respuesta al Negocio */}
+      {(solution?.sensitivity || solution?.business_response) && (
+        <div className="mt-5 p-4 bg-white shadow-lg rounded border">
+          <h2 className="text-dark text-center">📊 Análisis de Sensibilidad</h2>
+          <p className="text-center text-muted">
+            Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos.
+          </p>
+          <div className="border p-3 bg-light" style={{ minHeight: "150px", fontSize: "18px" }}>
+          <em>{solution?.sensitivity ? JSON.stringify(solution.sensitivity) : "Sin análisis de sensibilidad"}</em>
+
+          </div>
+          <h3 className="text-dark text-center mt-4">💼 Respuesta al Negocio</h3>
+          <div className="border p-3 bg-light text-center" style={{ minHeight: "150px", fontSize: "18px" }}>
+            <em>{solution?.business_response || "Sin respuesta generada"}</em>
           </div>
         </div>
+      )}
+
     </div>
   );
 }
