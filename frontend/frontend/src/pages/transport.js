@@ -207,22 +207,15 @@ export default function TransportPage() {
           </div>
         )}
 
-        {/* ✅ NUEVO APARTADO DE ANÁLISIS DE SENSIBILIDAD */}
-        <div className="mt-5">
-            <h3 className="text-dark">📊 Análisis de Sensibilidad / Resultados obtenidos / Toma de decisiones</h3>
+        {/* 🔥 Análisis de Sensibilidad */}
+        {solution && solution.sensitivity_analysis && (
+          <div className="mt-5">
+            <h3 className="text-dark">📊 Análisis de Sensibilidad</h3>
             <div className="card shadow-lg p-4 bg-white">
-              <p className="text-muted">
-                Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de
-                redes.
-              </p>
-              <div
-                className="border p-3 bg-light"
-                style={{ minHeight: "150px", fontSize: "18px", textAlign: "center" }}
-              >
-                <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
-              </div>
+              <p className="text-muted">{solution.sensitivity_analysis}</p>
             </div>
           </div>
+        )}
       </div>
     </div>
   );
