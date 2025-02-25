@@ -145,30 +145,29 @@ def generate_sensitivity_analysis_lp(solution, objective_value, constraints, var
         else:
             constraints_sensitivity += f"Restricción {i+1}: {lhs} = {constraint['rhs']}.\n"
 
-  # Análisis para el caso Dual
-    dual_analysis = ""
+    # Para métodos dual, se llama a la función específica
     if method_name == "DUAL":
         return generate_sensitivity_analysis_dual(solution, constraints, "max", objective_value)
 
-    # Si el método es gráfico, generar el análisis de sensibilidad específico
+    # Para el método gráfico, se llama a su función específica
     if method_name == "GRAPHICAL":
         return generate_sensitivity_analysis_graphical(solution, objective_value, constraints, variables)
 
-    # Recomendaciones finales
+    # Construir el análisis completo para métodos SIMPLEX, M_BIG, TWO_PHASE, etc.
+    analysis_text = artificial_analysis + "\n" + excess_analysis + "\n" + objective_sensitivity + "\n" + constraints_sensitivity
+
     recommendations = []
     if method_name in ["M_BIG", "TWO_PHASE"]:
         recommendations.append("Revisar la formulación de las restricciones, ya que las variables artificiales indican posibles problemas en la estructura del modelo.")
-    
-    if method_name == "DUAL":
-        recommendations.append("Revisar la formulación de las restricciones, ya que las variables artificiales indican posibles problemas en la estructura del modelo.")
-    
     if method_name == "SIMPLEX":
         recommendations.append("Revisar las iteraciones del método Simplex y cómo los coeficientes afectan las soluciones en cada etapa. Asegúrate de que los valores de las variables básicas sean correctos.")
 
     return {
-        "explanation": f"Análisis de sensibilidad del problema utilizando el método {method_name}:\n{artificial_analysis}{excess_analysis}{objective_sensitivity}{constraints_sensitivity}{dual_analysis}",
+        "explanation": f"Análisis de sensibilidad del problema utilizando el método {method_name}.",
+        "analysis": analysis_text,
         "recommendations": recommendations
     }
+
 def generate_sensitivity_analysis_graphical(solution, objective_value, constraints, variables):
     """
     Genera un análisis de sensibilidad para problemas resueltos con el método gráfico.
