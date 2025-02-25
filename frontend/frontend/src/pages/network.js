@@ -4,6 +4,23 @@ import { useRouter } from "next/navigation";
 import { solveNetwork } from "../services/networkService";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Modal } from "react-bootstrap";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// Función opcional para extraer JSON de Markdown (si es necesario)
+function extractJSONFromMarkdown(mdText) {
+  const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+  const match = mdText.match(codeBlockRegex);
+  if (match && match[1]) {
+    try {
+      return JSON.parse(match[1]);
+    } catch (err) {
+      console.error("Error parseando el bloque JSON:", err);
+    }
+  }
+  return null;
+}
+
 
 export default function NetworkPage() {
   const [graph, setGraph] = useState([]);
@@ -25,14 +42,31 @@ export default function NetworkPage() {
     setEdgeData({ from: "", to: "", weight: "" });
   };
 
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Enviando datos al backend:", graph);
     const data = { graph };
-    // Aquí se llama al endpoint que resuelve TODOS los métodos y genera el análisis
     const result = await solveNetwork({ ...data, problem_type: "all" });
     console.log("Respuesta del backend:", result);
-    setSolution(result);
+    let parsedAnalysis = result.network_analysis;
+    try {
+      if (
+        typeof result.network_analysis === "string" &&
+        result.network_analysis.trim().startsWith("{")
+      ) {
+        parsedAnalysis = JSON.parse(result.network_analysis);
+      } else {
+        // Si es Markdown, intenta extraer el bloque JSON
+        const extracted = extractJSONFromMarkdown(result.network_analysis);
+        if (extracted) parsedAnalysis = extracted;
+      }
+    } catch (error) {
+      console.error("Error parseando network_analysis:", error);
+      parsedAnalysis = result.network_analysis;
+    }
+    setSolution({ ...result, network_analysis: parsedAnalysis });
   };
 
   const handleImageClick = (imageData) => {
@@ -182,8 +216,7 @@ export default function NetworkPage() {
                                         key={index}
                                         className="list-group-item"
                                       >
-                                        🔹 Iteración {index + 1}: Camino{" "}
-                                        {step.path} | Capacidad {step.capacity}
+                                        🔹 Iteración {index + 1}: {step.path} | Capacidad {step.capacity}
                                       </li>
                                     )
                                   )}
@@ -200,19 +233,127 @@ export default function NetworkPage() {
             </div>
           )}
 
-          {/* Sección de Análisis de Sensibilidad */}
+          {/* Sección de Análisis de Sensibilidad / Interpretación de Resultados */}
           {solution && solution.network_analysis && (
             <div className="mt-5">
-              <h3 className="text-dark">
-                📊 Análisis de Sensibilidad / Interpretación de Resultados
+              <h3 className="text-dark text-center">
+                📊 Análisis de resultados obtenidos
               </h3>
-              <div className="card shadow-lg p-4 bg-white">
-                <p className="text-muted" style={{ whiteSpace: "pre-wrap" }}>
-                  {solution.network_analysis}
-                </p>
-              </div>
+              <div className="card bg-white shadow-lg p-4"> {/* Cuadro con fondo blanco */}
+                <div className="row">
+
+                  {/* 1. Análisis de Métodos */}
+                  {solution.network_analysis.metodos && (
+                    <div className="col-12 mb-4">
+                      <h5 className="text-black fst-italic text-center">1. Análisis de Métodos</h5>
+                      <div className="row">
+                        {Object.entries(solution.network_analysis.metodos).map(
+                          ([key, metodo]) => (
+                            <div className="col-md-3 mb-3" key={key}>
+                              <div className="card shadow-sm">
+                                <div className="card-header text-center">
+                                  <strong>{key.replace("_", " ").toUpperCase()}</strong>
+                                </div>
+                                <div className="card-body text-left">
+                                  {key === "mst" ? (
+                                    <>
+                                      <p className="card-text"><strong>Aristas:</strong></p>
+                                      <ul className="list-group list-group-flush">
+                                        {metodo.aristas &&
+                                          metodo.aristas.map((arista, idx) => (
+                                            <li key={idx} className="list-group-item">
+                                              {arista.origen} → {arista.destino} ({arista.peso})
+                                            </li>
+                                          ))}
+                                      </ul>
+                                      <p className="card-text mt-2"><strong>Peso total:</strong> {metodo.peso_total}</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="card-text"><strong>Secuencia:</strong> {metodo.secuencia}</p>
+                                      <p className="card-text"><strong>{key === "max_flow" ? "Flujo total" : "Peso total"}:</strong> {metodo.peso_total || metodo.flujo_total}</p>
+                                    </>
+                                  )}
+                                  <p className="card-text"><em>{metodo.detalle}</em></p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. Comparación de Resultados */}
+                  {solution.network_analysis.comparacion && (
+                    <div className="col-12 mb-4">
+                      <h5 className="text-black fst-italic text-center">2. Comparación de Resultados</h5>
+                      <div className="card shadow-sm p-3">
+                        <table className="table table-bordered">
+                          <thead>
+                            <tr>
+                              <th className="text-left">Método</th>
+                              <th className="text-left">Descripción</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(solution.network_analysis.comparacion).map(
+                              ([key, value]) => (
+                                <tr key={key}>
+                                  <td className="text-capitalize">{key.replace("_", " ")}</td>
+                                  <td className="text-justify">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                      {value}
+                                    </ReactMarkdown>
+                                  </td>
+                                </tr>
+                              )
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. Método Óptimo */}
+                  {solution.network_analysis.metodo_optimo && (
+                    <div className="col-12 mb-4">
+                      <h5 className="text-black fst-italic text-center">3. Método Óptimo</h5>
+                      <div className="card shadow-sm p-3">
+                        <p className="text-left">
+                          <strong>Explicación:</strong>{" "}
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {solution.network_analysis.metodo_optimo.explicacion}
+                          </ReactMarkdown>
+                        </p>
+                        <p className="text-left">
+                          <strong>Recomendación:</strong>{" "}
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {solution.network_analysis.metodo_optimo.recomendacion}
+                          </ReactMarkdown>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 4. Conclusión y Recomendación */}
+                  {solution.network_analysis.conclusion && (
+                    <div className="col-12 mb-4">
+                      <h5 className="text-black fst-italic text-center">4. Conclusión y Recomendación</h5>
+                      <div className="card shadow-sm p-3">
+                      <p className="text-left">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {solution.network_analysis.conclusion}
+                          </ReactMarkdown>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div> {/* Fin del cuadro de fondo blanco */}
             </div>
           )}
+
         </div>
       </div>
 
