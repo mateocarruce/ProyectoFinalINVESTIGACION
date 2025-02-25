@@ -206,23 +206,40 @@ export default function TransportPage() {
             {renderMatrixTable(solution.optimal_solution)}
           </div>
         )}
-
-        {/* ✅ NUEVO APARTADO DE ANÁLISIS DE SENSIBILIDAD */}
-        <div className="mt-5">
-            <h3 className="text-dark">📊 Análisis de Sensibilidad / Resultados obtenidos / Toma de decisiones</h3>
-            <div className="card shadow-lg p-4 bg-white">
-              <p className="text-muted">
-                Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de
-                redes.
-              </p>
-              <div
-                className="border p-3 bg-light"
-                style={{ minHeight: "150px", fontSize: "18px", textAlign: "center" }}
-              >
-                <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
-              </div>
-            </div>
-          </div>
+{/* 🔥 Análisis de Sensibilidad */}
+{solution && solution.sensitivity_analysis && (
+  <div className="mt-5">
+    <h3 className="text-dark">
+      <span role="img" aria-label="chart">📊</span> Análisis de Sensibilidad
+    </h3>
+    <div className="card shadow-lg p-4 bg-white">
+      <div className="p-3">
+        {solution.sensitivity_analysis.split("\n").map((line, index) => {
+          // 🔹 Resaltar títulos y secciones en negrita
+          if (line.startsWith("**")) {
+            return (
+              <h5 key={index} className="text-primary mt-3">
+                {line.replace(/\*\*/g, "")}
+              </h5>
+            );
+          }
+          // 🔹 Resaltar elementos de lista
+          else if (line.startsWith("*")) {
+            return (
+              <li key={index} className="text-dark">
+                {line.replace(/\*/g, "")}
+              </li>
+            );
+          }
+          // 🔹 Separar párrafos normales
+          else {
+            return <p key={index} className="text-muted">{line}</p>;
+          }
+        })}
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
