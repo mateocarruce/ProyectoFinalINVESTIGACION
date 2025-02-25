@@ -105,66 +105,115 @@ def solve_optimization(problem_type, data):
 def generate_sensitivity_analysis_lp(solution, objective_value, constraints, variables, method):
     """
     Genera un análisis de sensibilidad para problemas de programación lineal, considerando
-    el tipo de método utilizado (Gran M, Dos Fases, Dual, Gráfico) y las variables artificiales.
+    el tipo de método utilizado (Gran M, Dos Fases, Dual, Gráfico, Simplex) y las variables artificiales.
     """
     artificial_vars = solution.get("artificial_variables", {})
     excess_vars = solution.get("excess_variables", {})  # Variables de exceso
-    method_name = method.upper()  # Método utilizado (Gran M, Dos Fases, Dual, Gráfico)
+    method_name = method.upper()  # Método utilizado
 
-    # Analizar el impacto de las variables artificiales
+    # --- Análisis de Variables Artificiales ---
     artificial_analysis = ""
     if artificial_vars:
         for var_name, value in artificial_vars.items():
             if value > 0:
-                artificial_analysis += f"Advertencia: La variable artificial {var_name} tiene un valor de {value}, lo que sugiere que la solución es subóptima o que el problema tiene restricciones conflictivas.\n"
+                artificial_analysis += f"🚨 **Advertencia:** La variable artificial **{var_name}** tiene un valor de **{value}**, lo que sugiere posibles conflictos o subóptimidad en la solución.\n"
             else:
-                artificial_analysis += f"La variable artificial {var_name} tiene un valor de {value}, lo que indica que fue eliminada correctamente.\n"
+                artificial_analysis += f"✅ La variable artificial **{var_name}** tiene un valor de **{value}**, indicando que fue eliminada correctamente.\n"
 
-    # Analizar el impacto de las variables de exceso
+    # --- Análisis de Variables de Exceso ---
     excess_analysis = ""
     if excess_vars:
         for var_name, value in excess_vars.items():
             if value > 0:
-                excess_analysis += f"Advertencia: La variable de exceso {var_name} tiene un valor de {value}, lo que indica que la restricción asociada no se está utilizando completamente en la solución óptima.\n"
+                excess_analysis += f"🚨 **Advertencia:** La variable de exceso **{var_name}** tiene un valor de **{value}**, lo que indica que la restricción asociada no se está utilizando completamente.\n"
             else:
-                excess_analysis += f"La variable de exceso {var_name} tiene un valor de {value}, lo que indica que la restricción está siendo satisfecha sin exceso.\n"
+                excess_analysis += f"✅ La variable de exceso **{var_name}** tiene un valor de **{value}**, indicando que la restricción se satisface sin exceso.\n"
 
-    # Analizar sensibilidad de los coeficientes del objetivo
-    objective_sensitivity = "El análisis de sensibilidad sobre los coeficientes de la función objetivo indica cómo los cambios en los coeficientes pueden afectar la solución óptima.\n"
+    # --- Sensibilidad de los Coeficientes del Objetivo ---
+    objective_sensitivity = "📈 **Función Objetivo:** Los cambios en los coeficientes pueden alterar la pendiente y desplazar el óptimo.\n"
     if method_name in ["M_BIG", "TWO_PHASE"]:
-        objective_sensitivity += "Este análisis también debe considerar cómo las penalizaciones (en Gran M) o las variables artificiales pueden afectar la solución.\n"
+        objective_sensitivity += "⚠️ **Nota:** En métodos como Gran M o Dos Fases, se deben considerar las penalizaciones y el comportamiento de las variables artificiales.\n"
 
-    # Analizar restricciones
-    constraints_sensitivity = "El análisis de las restricciones evalúa cómo los cambios en los coeficientes de las restricciones pueden afectar la solución.\n"
+    # --- Análisis de Restricciones ---
+    constraints_sensitivity = "📐 **Restricciones:**\n"
     for i, constraint in enumerate(constraints):
         lhs = " + ".join(f"{constraint['coeffs'][j]}*{variables[j]}" for j in range(len(constraint['coeffs'])))
         if constraint["sign"] == "<=":
-            constraints_sensitivity += f"Restricción {i+1}: {lhs} <= {constraint['rhs']}.\n"
+            constraints_sensitivity += f"   - **Restricción {i+1}:** `{lhs} <= {constraint['rhs']}`\n"
         elif constraint["sign"] == ">=":
-            constraints_sensitivity += f"Restricción {i+1}: {lhs} >= {constraint['rhs']}.\n"
+            constraints_sensitivity += f"   - **Restricción {i+1}:** `{lhs} >= {constraint['rhs']}`\n"
         else:
-            constraints_sensitivity += f"Restricción {i+1}: {lhs} = {constraint['rhs']}.\n"
+            constraints_sensitivity += f"   - **Restricción {i+1}:** `{lhs} = {constraint['rhs']}`\n"
 
-    # Para métodos dual, se llama a la función específica
+    # --- Si se usa el método Dual, delegar a su función específica ---
     if method_name == "DUAL":
         return generate_sensitivity_analysis_dual(solution, constraints, "max", objective_value)
 
-    # Para el método gráfico, se llama a su función específica
+    # --- Si se usa el método Gráfico, delegar a su función específica ---
     if method_name == "GRAPHICAL":
         return generate_sensitivity_analysis_graphical(solution, objective_value, constraints, variables)
 
     # Construir el análisis completo para métodos SIMPLEX, M_BIG, TWO_PHASE, etc.
-    analysis_text = artificial_analysis + "\n" + excess_analysis + "\n" + objective_sensitivity + "\n" + constraints_sensitivity
+    analysis_text = (
+        artificial_analysis + "\n" +
+        excess_analysis + "\n" +
+        objective_sensitivity + "\n" +
+        constraints_sensitivity
+    )
 
+    # --- Recomendaciones ---
     recommendations = []
     if method_name in ["M_BIG", "TWO_PHASE"]:
-        recommendations.append("Revisar la formulación de las restricciones, ya que las variables artificiales indican posibles problemas en la estructura del modelo.")
+        recommendations.append("🔍 Revisar la formulación de las restricciones, ya que las variables artificiales pueden indicar problemas en el modelo.")
     if method_name == "SIMPLEX":
-        recommendations.append("Revisar las iteraciones del método Simplex y cómo los coeficientes afectan las soluciones en cada etapa. Asegúrate de que los valores de las variables básicas sean correctos.")
+        recommendations.append("⚙️ Verificar las iteraciones del método Simplex para confirmar que los valores básicos sean correctos.")
 
     return {
-        "explanation": f"Análisis de sensibilidad del problema utilizando el método {method_name}.",
+        "explanation": f"**Análisis de Sensibilidad** utilizando el método **{method_name}**:",
         "analysis": analysis_text,
+        "recommendations": recommendations
+    }
+
+def generate_sensitivity_analysis_dual(solution, constraints, primal_objective, dual_objective_value):
+    """
+    Genera un análisis de sensibilidad para el método dual en programación lineal.
+    Evalúa cómo los cambios en las restricciones afectan las variables duales y la solución óptima.
+    """
+    dual_analysis = ""
+    
+    if primal_objective == "max":
+        dual_analysis += "🔷 **Método Dual (Maximización)**\n"
+        dual_analysis += "-----------------------------------\n"
+        dual_analysis += "Este análisis examina cómo los cambios en las restricciones afectan la solución óptima en el problema primal.\n"
+    else:
+        dual_analysis += "🔷 **Método Dual (Minimización)**\n"
+        dual_analysis += "-----------------------------------\n"
+        dual_analysis += "Este análisis evalúa la sensibilidad del problema a modificaciones en las restricciones.\n"
+    
+    dual_analysis += f"\n**Valor óptimo de la función objetivo dual:** `{dual_objective_value}`\n\n"
+    
+    # Evaluación de las restricciones y variables duales
+    for i, constraint in enumerate(constraints):
+        dual_value = solution["variable_values"].get(f"y{i+1}", 0)
+        dual_analysis += f"**Restricción {i+1}:** Valor de la variable dual = **{dual_value}**\n"
+        if dual_value > 0:
+            dual_analysis += "   - 🔴 **Activa (ligante):** Cambios en esta restricción modificarán la solución óptima.\n"
+            # Estimación del rango de factibilidad (aproximado)
+            lower_bound = constraint["rhs"] - abs(dual_value) * 0.1
+            upper_bound = constraint["rhs"] + abs(dual_value) * 0.1
+            dual_analysis += f"     • **Rango de factibilidad:** `{lower_bound:.2f} ≤ RHS ≤ {upper_bound:.2f}`\n"
+        else:
+            dual_analysis += "   - ⚪ **No activa:** Pequeñas variaciones no afectarán la solución óptima.\n"
+        dual_analysis += "\n"
+
+    recommendations = [
+        "💡 Si una restricción tiene una variable dual positiva, evaluar cómo su modificación (aumentar el RHS) podría mejorar la solución.",
+        "💡 Si la variable dual es cero, considerar si la restricción puede ser ajustada sin afectar el óptimo.",
+        "💡 Utilizar el valor sombra para identificar restricciones críticas."
+    ]
+    
+    return {
+        "analysis": dual_analysis,
         "recommendations": recommendations
     }
 
@@ -197,8 +246,8 @@ def generate_sensitivity_analysis_graphical(solution, objective_value, constrain
     # 2. Función Objetivo
     analysis_text += "### 2. Función Objetivo\n\n"
     analysis_text += f"La función objetivo es: **{variables[0]} * x1 + {variables[1]} * x2**.\n\n"
-    analysis_text += "- **Impacto:** Cambiar los coeficientes de la función objetivo modifica la pendiente de la recta, lo que puede desplazar el óptimo a otro vértice.\n"
-    analysis_text += "- **Recomendación:** Evaluar con cuidado cualquier variación en los coeficientes.\n\n"
+    analysis_text += "- **Impacto:** Cambiar los coeficientes de la función objetivo modifica la pendiente, lo que puede desplazar el óptimo a otro vértice.\n"
+    analysis_text += "- **Recomendación:** Evaluar cuidadosamente cualquier variación en los coeficientes.\n\n"
     
     # 3. Puntos de Intersección
     analysis_text += "### 3. Puntos de Intersección\n\n"
@@ -222,58 +271,13 @@ def generate_sensitivity_analysis_graphical(solution, objective_value, constrain
     
     # Lista de recomendaciones resumidas
     recommendations = [
-        "Revisar los coeficientes de las restricciones para asegurar la estabilidad de la solución.",
-        "Evaluar el impacto de modificaciones en la función objetivo.",
-        "Realizar pruebas con valores alternativos para validar la robustez del modelo."
+        "🔍 Revisar los coeficientes de las restricciones para asegurar la estabilidad de la solución.",
+        "🔍 Evaluar el impacto de modificaciones en la función objetivo.",
+        "🔍 Realizar pruebas con valores alternativos para validar la robustez del modelo."
     ]
     
     return {
         "explanation": explanation_text,
         "analysis": analysis_text,
-        "recommendations": recommendations
-    }
-
-def generate_sensitivity_analysis_dual(solution, constraints, primal_objective, dual_objective_value):
-    """
-    Genera un análisis de sensibilidad para el método dual en programación lineal.
-    Evalúa cómo los cambios en las restricciones afectan las variables duales y la solución óptima.
-    """
-    dual_analysis = ""
-    
-    if primal_objective == "max":
-        dual_analysis += "Análisis de Sensibilidad - Método Dual (Maximización)\n"
-        dual_analysis += "--------------------------------------------------\n"
-        dual_analysis += "Este análisis examina cómo los cambios en las restricciones afectan la solución óptima.\n"
-    else:
-        dual_analysis += "Análisis de Sensibilidad - Método Dual (Minimización)\n"
-        dual_analysis += "--------------------------------------------------\n"
-        dual_analysis += "Este análisis evalúa la sensibilidad del problema a cambios en las restricciones.\n"
-    
-    dual_analysis += f"Valor óptimo de la función objetivo dual: {dual_objective_value}\n\n"
-    
-    # Evaluación de las restricciones y variables duales
-    for i, constraint in enumerate(constraints):
-        dual_value = solution["variable_values"].get(f"y{i+1}", 0)
-        dual_analysis += f"Restricción {i+1}: Valor de la variable dual = {dual_value}\n"
-
-        if dual_value > 0:
-            dual_analysis += "    **Impacto:** Restricción activa (ligante). Cambios en esta restricción afectan la solución óptima.\n"
-            
-            # Estimación del rango de factibilidad (solo aproximado si no tenemos todos los coeficientes)
-            lower_bound = constraint["rhs"] - abs(dual_value) * 0.1
-            upper_bound = constraint["rhs"] + abs(dual_value) * 0.1
-            dual_analysis += f"    **Rango de factibilidad:** {lower_bound:.2f} ≤ RHS ≤ {upper_bound:.2f}\n"
-        else:
-            dual_analysis += "    **Impacto:** Restricción no activa. Pequeños cambios no afectan la solución óptima.\n"
-
-    # Recomendaciones basadas en el análisis
-    recommendations = [
-        "Si una restricción tiene una variable dual positiva, analizar cómo cambios en el lado derecho pueden mejorar la solución.",
-        "Si una restricción tiene una variable dual de valor cero, evaluar si es posible modificar o eliminar sin afectar la solución.",
-        "Considerar el valor sombra para identificar restricciones que más afectan el resultado óptimo."
-    ]
-    
-    return {
-        "analysis": dual_analysis,
         "recommendations": recommendations
     }
