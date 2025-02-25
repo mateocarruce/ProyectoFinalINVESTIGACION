@@ -14,13 +14,7 @@
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
-    "react-dom": "^19.0.0",
-<<<<<<< HEAD
-    "react-markdown": "^10.0.0"
-=======
-    "react-markdown": "^10.0.0",
-    "remark-gfm": "^4.0.1"
->>>>>>> 34ddf8f086865224719d2993d882f4d30e4841a1
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
