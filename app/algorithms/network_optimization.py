@@ -114,7 +114,6 @@ def max_flow_algorithm(graph, source, sink):
     for u, v, w in graph:
         G.add_edge(u, v, capacity=w)
 
-    # Inicializar variables
     flow_value = 0
     iterations = []
     residual_graph = G.copy()
@@ -122,32 +121,33 @@ def max_flow_algorithm(graph, source, sink):
     # Aplicar algoritmo de Edmonds-Karp
     while True:
         try:
-            # Encontrar camino aumentante con BFS
             path = nx.shortest_path(residual_graph, source=source, target=sink, weight=None)
-            min_capacity = min(residual_graph[u][v]["capacity"] for u, v in zip(path, path[1:]))
+            # Verificar que el camino tenga al menos 2 nodos (es decir, que existan aristas)
+            if len(path) < 2:
+                break
+
+            edges_in_path = list(zip(path, path[1:]))
+            if not edges_in_path:
+                break
+
+            min_capacity = min(residual_graph[u][v]["capacity"] for u, v in edges_in_path)
             
-            # Guardar la iteración
             iterations.append({
                 "path": " → ".join(path),
                 "capacity": min_capacity
             })
 
-            # Actualizar capacidades del grafo residual
-            for u, v in zip(path, path[1:]):
+            for u, v in edges_in_path:
                 residual_graph[u][v]["capacity"] -= min_capacity
                 if residual_graph[u][v]["capacity"] == 0:
                     residual_graph.remove_edge(u, v)
 
-            # Acumular flujo
             flow_value += min_capacity
 
         except nx.NetworkXNoPath:
-            # No hay más caminos aumentantes
             break
 
-    # Generar imagen del flujo máximo
     image = generate_graph_image(graph, title="Flujo Máximo")
-
     return {
         "max_flow": flow_value,
         "iterations": iterations,
@@ -155,7 +155,6 @@ def max_flow_algorithm(graph, source, sink):
         "end_node": sink,
         "graph_image": image
     }
-
 
 def solve_all_problems(graph):
     """Resuelve todos los problemas y devuelve datos completos"""
