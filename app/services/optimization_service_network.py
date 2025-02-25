@@ -3,9 +3,15 @@ import google.generativeai as genai
 from algorithms.network_optimization import solve_all_problems
 
 # Configura Gemini IA con la API Key
-API_KEY = "AIzaSyB16JUqCW5wkb22WWRuPaE7xoCVjrq3-u4"
+API_KEY = "AIzaSyDH3qCZqhPfelcWvSZo0f9MEKpniXBXMf8"
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel("gemini-pro")
+
+# Listar modelos disponibles para asegurarnos de que "gemini-pro" está soportado
+models = genai.list_models()
+print("Modelos disponibles:", [model.name for model in models])
+
+# Usar la versión correcta del modelo
+model = genai.GenerativeModel("gemini-1.5-pro-latest")
 def generate_network_analysis(results):
     prompt = f"""
     Devuelve **solamente** un objeto JSON válido y EXACTO que cumpla con la siguiente estructura, sin ningún texto adicional ni comentarios fuera del JSON. Usa formato Markdown para enriquecer algunos campos (por ejemplo, emojis, negritas) y asegúrate de **rellenar TODOS los campos obligatoriamente**, incluyendo **valores numéricos en todas las comparaciones y explicaciones**.
