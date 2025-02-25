@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Modal } from "react-bootstrap";
+import ReactMarkdown from 'react-markdown';
 
 export default function LinearPage() {
   const [method, setMethod] = useState("simplex");
@@ -343,7 +344,7 @@ export default function LinearPage() {
         <Modal.Body className="text-center">
           {solution && solution.solution && solution.solution.graph && (
             <Image
-              src={`http://127.0.0.1:8000${solution.solution.graph}`}
+              src={`http://127.0.0.1:8000/static/graph_with_table.png`}
               alt="Gráfico ampliado"
               width={600}
               height={600}
@@ -353,9 +354,10 @@ export default function LinearPage() {
 
 
         </Modal.Body>
-      </Modal>
-      {/* 🔥 Análisis de Sensibilidad Mejorado */}
-{solution && solution.sensitivity_analysis && (
+</Modal>
+
+{/* 🔥 Análisis de Sensibilidad Mejorado */}
+{solution && solution.solution && solution.solution.sensitivity_analysis && (
   <div className="mt-5">
     <h3 className="text-dark">📊 Análisis de Sensibilidad</h3>
     <div className="card shadow-lg p-4 bg-white">
@@ -363,31 +365,91 @@ export default function LinearPage() {
       {/* Estado y Valor Óptimo */}
       <p className="mb-3">
         <span className="badge bg-success me-2">📌</span>
-        <strong>Estado de la solución:</strong> {solution.solution.status === "Optimal" ? "✅ Óptima" : "⚠ No Óptima"}
+        <strong>Estado de la solución:</strong>{" "}
+        {solution.solution.status === "optimal" ? "✅ Óptima" : "⚠ No Óptima"}
       </p>
       <p>
         <span className="badge bg-primary me-2">🎯</span>
-        <strong>Valor Óptimo:</strong> <span className="text-primary">{solution.solution.objective_value}</span>
+        <strong>Valor Óptimo:</strong>{" "}
+        <span className="text-primary">{solution.solution.objective_value}</span>
       </p>
 
-      {/* Explicación General */}
-      <div className="alert alert-info">
-        <h5 className="text-primary">📢 Explicación del Resultado:</h5>
-        <p className="text-muted">{solution.sensitivity_analysis.explanation}</p>
-      </div>
+      {/* Renderizar el análisis de sensibilidad */}
+      {typeof solution.solution.sensitivity_analysis === "string" ? (
+        <div className="alert alert-info">
+          <ReactMarkdown
+            components={{
+              p: (props) => <p className="text-muted" {...props} />,
+              strong: (props) => <strong className="fw-bold" {...props} />,
+              em: (props) => <em className="text-primary" {...props} />,
+              ul: (props) => <ul className="list-group" {...props} />,
+              li: (props) => <li className="list-group-item" {...props} />,
+            }}
+          >
+            {solution.solution.sensitivity_analysis}
+          </ReactMarkdown>
+        </div>
+      ) : (
+        <>
+          {/* Explicación General */}
+          {solution.solution.sensitivity_analysis.explanation && (
+            <div className="alert alert-info">
+              <h5 className="text-primary">📢 Explicación del Resultado:</h5>
+              <ReactMarkdown
+                components={{
+                  p: (props) => <p className="text-muted" {...props} />,
+                  strong: (props) => <strong className="fw-bold" {...props} />,
+                  em: (props) => <em className="text-primary" {...props} />,
+                  ul: (props) => <ul className="list-group" {...props} />,
+                  li: (props) => <li className="list-group-item" {...props} />,
+                }}
+              >
+                {solution.solution.sensitivity_analysis.explanation}
+              </ReactMarkdown>
+            </div>
+          )}
 
-      {/* 📌 Recomendaciones estratégicas */}
-      <h5 className="text-primary mt-3">📢 ¿Cómo mejorar los resultados?</h5>
-      <ul className="list-group">
-        {solution.sensitivity_analysis.recommendations.map((recommendation, index) => (
-          <li key={index} className="list-group-item">📌 {recommendation}</li>
-        ))}
-      </ul>
+          {/* Análisis de Sensibilidad Específico */}
+          {solution.solution.sensitivity_analysis.analysis && (
+            <div className="mt-3">
+              <h6 className="text-primary">🔍 Análisis de Sensibilidad:</h6>
+              <ReactMarkdown
+                components={{
+                  p: (props) => <p className="text-muted" {...props} />,
+                  strong: (props) => <strong className="fw-bold" {...props} />,
+                  em: (props) => <em className="text-primary" {...props} />,
+                  ul: (props) => <ul className="list-group" {...props} />,
+                  li: (props) => <li className="list-group-item" {...props} />,
+                }}
+              >
+                {solution.solution.sensitivity_analysis.analysis}
+              </ReactMarkdown>
+            </div>
+          )}
 
+          {/* Recomendaciones */}
+          {solution.solution.sensitivity_analysis.recommendations &&
+            solution.solution.sensitivity_analysis.recommendations.length > 0 && (
+              <div className="alert alert-warning">
+                <h5 className="text-primary">📌 Recomendaciones:</h5>
+                <ul className="list-group">
+                  {solution.solution.sensitivity_analysis.recommendations.map(
+                    (recommendation, index) => (
+                      <li key={index} className="list-group-item">
+                        {recommendation}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
+        </>
+      )}
     </div>
   </div>
 )}
 
-    </div>
-  );
+
+  </div>
+  );  
 }

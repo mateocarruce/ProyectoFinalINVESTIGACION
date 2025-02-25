@@ -2,22 +2,22 @@ Welcome to the CBC MILP Solver
 Version: 2.10.3 
 Build Date: Dec 15 2019 
 
-command line - C:\Users\USER\AppData\Local\Programs\Python\Python313\Lib\site-packages\pulp\solverdir\cbc\win\64\cbc.exe C:\Users\USER\AppData\Local\Temp\e16b37c567d341629fd58ffac302c8e4-pulp.mps -max -timeMode elapsed -branch -printingOptions all -solution C:\Users\USER\AppData\Local\Temp\e16b37c567d341629fd58ffac302c8e4-pulp.sol (default strategy 1)
+command line - C:\Users\Daniela Cáceres\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\LocalCache\local-packages\Python312\site-packages\pulp\solverdir\cbc\win\64\cbc.exe C:\Users\DANIEL~1\AppData\Local\Temp\a492b7f525a64527b76225055df9ac3b-pulp.mps -max -timeMode elapsed -branch -printingOptions all -solution C:\Users\DANIEL~1\AppData\Local\Temp\a492b7f525a64527b76225055df9ac3b-pulp.sol (default strategy 1)
 At line 2 NAME          MODEL
 At line 3 ROWS
-At line 7 COLUMNS
-At line 14 RHS
-At line 17 BOUNDS
-At line 18 ENDATA
-Problem MODEL has 2 rows, 2 columns and 4 elements
+At line 10 COLUMNS
+At line 25 RHS
+At line 31 BOUNDS
+At line 32 ENDATA
+Problem MODEL has 5 rows, 4 columns and 12 elements
 Coin0008I MODEL read with 0 errors
 Option for timeMode changed from cpu to elapsed
-Presolve 2 (0) rows, 2 (0) columns and 4 (0) elements
-0  Obj -0 Dual inf 880 (2)
-0  Obj -0 Dual inf 880 (2)
-2  Obj 5440
-Optimal - objective value 5440
-Optimal objective 5440 - 2 iterations time 0.002
+Presolve 5 (0) rows, 2 (-2) columns and 10 (-2) elements
+0  Obj -0 Dual inf 4.999998 (2)
+2  Obj 23.375
+Optimal - objective value 23.375
+After Postsolve, objective 23.375, infeasibilities - dual 0 (0), primal 0 (0)
+Optimal objective 23.375 - 2 iterations time 0.002, Presolve 0.00
 Option for printingOptions changed from normal to all
-Total time (CPU seconds):       0.00   (Wallclock seconds):       0.00
+Total time (CPU seconds):       0.01   (Wallclock seconds):       0.01
 
