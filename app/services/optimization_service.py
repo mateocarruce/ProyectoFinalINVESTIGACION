@@ -33,7 +33,6 @@ def generate_sensitivity_analysis(solution, total_cost):
 
     Presenta la respuesta de manera clara y estructurada para que sea fácil de entender por un usuario de negocios.
     """
-
     try:
         response = model.generate_content(prompt).text
         return response
@@ -86,7 +85,6 @@ def solve_optimization(problem_type, data):
 
             optimal_solution = modi_method(initial_solution, costs)
             total_cost = calculate_total_cost(optimal_solution, costs)
-
             sensitivity_analysis = generate_sensitivity_analysis(optimal_solution, total_cost)
 
             response = {
@@ -96,6 +94,9 @@ def solve_optimization(problem_type, data):
                 "total_cost": total_cost if total_cost is not None else 0,
                 "sensitivity_analysis": sensitivity_analysis if sensitivity_analysis is not None else "⚠ No disponible."
             }
+
+            print("📩 Respuesta enviada al frontend:", response)  # ✅ Verificar respuesta
+
 
             print("📩 Respuesta enviada al frontend:", response)
             return response

@@ -110,16 +110,16 @@ export default function LinearPage() {
     <div className="container-fluid bg-light min-vh-100">
       {/* Navbar fijo */}
       <nav className="navbar navbar-dark bg-dark p-3">
-      <button onClick={() => router.push("/")} className="btn btn-light">
-        ⬅ Regresar al Inicio
-      </button>
-      <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
-    </nav>
+        <button onClick={() => router.push("/")} className="btn btn-light">
+          ⬅ Regresar al Inicio
+        </button>
+        <h3 className="text-white mx-auto">Solucionador de Programación Lineal</h3>
+      </nav>
 
-    {/* Espacio para evitar solapamiento con el Navbar */}
-    <div className="container mt-5"></div>
+      {/* Espacio para evitar solapamiento con el Navbar */}
+      <div className="container mt-5"></div>
 
-      
+
 
       {/* Espacio para evitar solapamiento con el Navbar fijo */}
       <div className="pt-5 mt-5">
@@ -329,7 +329,7 @@ export default function LinearPage() {
                   />
                 </div>
               )}
-              
+
             </div>
           )}
         </div>
@@ -354,19 +354,40 @@ export default function LinearPage() {
 
         </Modal.Body>
       </Modal>
+      {/* 🔥 Análisis de Sensibilidad Mejorado */}
+{solution && solution.sensitivity_analysis && (
+  <div className="mt-5">
+    <h3 className="text-dark">📊 Análisis de Sensibilidad</h3>
+    <div className="card shadow-lg p-4 bg-white">
+      
+      {/* Estado y Valor Óptimo */}
+      <p className="mb-3">
+        <span className="badge bg-success me-2">📌</span>
+        <strong>Estado de la solución:</strong> {solution.solution.status === "Optimal" ? "✅ Óptima" : "⚠ No Óptima"}
+      </p>
+      <p>
+        <span className="badge bg-primary me-2">🎯</span>
+        <strong>Valor Óptimo:</strong> <span className="text-primary">{solution.solution.objective_value}</span>
+      </p>
 
-      {/* ✅ NUEVO APARTADO DE ANÁLISIS DE SENSIBILIDAD */}
-      <div className="mt-5">
-          <h3 className="text-dark text-center">📊 Análisis de Sensibilidad</h3>
-          <div className="card shadow-lg p-4 bg-white">
-            <p className="text-muted text-center">
-              Aquí se mostrarán los análisis y conclusiones sobre los resultados obtenidos en la optimización de la programación lineal.
-            </p>
-            <div className="border p-3 bg-light text-center" style={{ minHeight: "150px", fontSize: "18px" }}>
-              <em>🔎 Espacio reservado para futuros cálculos y análisis.</em>
-            </div>
-          </div>
-        </div>
+      {/* Explicación General */}
+      <div className="alert alert-info">
+        <h5 className="text-primary">📢 Explicación del Resultado:</h5>
+        <p className="text-muted">{solution.sensitivity_analysis.explanation}</p>
+      </div>
+
+      {/* 📌 Recomendaciones estratégicas */}
+      <h5 className="text-primary mt-3">📢 ¿Cómo mejorar los resultados?</h5>
+      <ul className="list-group">
+        {solution.sensitivity_analysis.recommendations.map((recommendation, index) => (
+          <li key={index} className="list-group-item">📌 {recommendation}</li>
+        ))}
+      </ul>
+
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

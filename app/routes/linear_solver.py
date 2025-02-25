@@ -39,11 +39,14 @@ def solve_linear(data: dict):
         else:
             solution = solve_linear_problem(data)  # Llamar al método de programación lineal
 
-        # Análisis de sensibilidad solo se aplica a métodos de programación lineal
-        sensitivity = analyze_sensitivity(data, solution) if method != "graphical" else None
+        # Análisis de sensibilidad (explicativo)
+        sensitivity_analysis = analyze_sensitivity(data, solution) if method != "graphical" else None
 
-     # En tu método solve_linear:
-        response = {"solution": solution, "sensitivity": sensitivity}
+        response = {
+            "solution": solution,
+            "sensitivity_analysis": sensitivity_analysis
+        }
+
         if method == "graphical":
             response["solution"]["graph"] = "/static/graph_with_table.png"
         else:
