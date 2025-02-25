@@ -206,40 +206,40 @@ export default function TransportPage() {
             {renderMatrixTable(solution.optimal_solution)}
           </div>
         )}
-        {/* 🔥 Análisis de Sensibilidad */}
-        {solution && solution.sensitivity_analysis && (
-          <div className="mt-5">
-            <h3 className="text-dark">
-              <span role="img" aria-label="chart">📊</span> Análisis de Sensibilidad
-            </h3>
-            <div className="card shadow-lg p-4 bg-white">
-              <div className="p-3">
-                {solution.sensitivity_analysis.split("\n").map((line, index) => {
-                  // 🔹 Resaltar títulos y secciones en negrita
-                  if (line.startsWith("**")) {
-                    return (
-                      <h5 key={index} className="text-primary mt-3">
-                        {line.replace(/\*\*/g, "")}
-                      </h5>
-                    );
-                  }
-                  // 🔹 Resaltar elementos de lista
-                  else if (line.startsWith("*")) {
-                    return (
-                      <li key={index} className="text-dark">
-                        {line.replace(/\*/g, "")}
-                      </li>
-                    );
-                  }
-                  // 🔹 Separar párrafos normales
-                  else {
-                    return <p key={index} className="text-muted">{line}</p>;
-                  }
-                })}
-              </div>
-            </div>
-          </div>
-        )}
+{/* 🔥 Análisis de Sensibilidad */}
+{solution && solution.sensitivity_analysis && (
+  <div className="mt-5">
+    <h3 className="text-dark">
+      <span role="img" aria-label="chart">📊</span> Análisis de Sensibilidad
+    </h3>
+    <div className="card shadow-lg p-4 bg-white">
+      <div className="p-3">
+        {solution.sensitivity_analysis.split("\n").map((line, index) => {
+          // 🔹 Resaltar títulos y secciones en negrita
+          if (line.startsWith("**")) {
+            return (
+              <h5 key={index} className="text-primary mt-3">
+                {line.replace(/\*\*/g, "")}
+              </h5>
+            );
+          }
+          // 🔹 Resaltar elementos de lista
+          else if (line.startsWith("*")) {
+            return (
+              <li key={index} className="text-dark">
+                {line.replace(/\*/g, "")}
+              </li>
+            );
+          }
+          // 🔹 Separar párrafos normales
+          else {
+            return <p key={index} className="text-muted">{line}</p>;
+          }
+        })}
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
