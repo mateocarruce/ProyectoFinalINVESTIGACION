@@ -2,6 +2,8 @@ import pulp
 import re
 import numpy as np
 import matplotlib
+import os
+
 from fastapi.encoders import jsonable_encoder
 
 matplotlib.use('Agg')  # Usar un backend no interactivo
@@ -11,8 +13,9 @@ from pulp import LpProblem, LpMaximize, LpMinimize, LpVariable, lpSum, value
 def sanitize_variable_name(name):
     """Corrige los nombres de variables para que sean válidos en PuLP."""
     return re.sub(r'[^a-zA-Z0-9_]', '_', name)
-
 def solve_linear_problem(data):
+    from services.optimization_service import generate_sensitivity_analysis_lp  # Evita importación circular
+
     method = data.get("method", "simplex")  # Método por defecto: Simplex
 
     # Crear problema de programación lineal
@@ -22,17 +25,20 @@ def solve_linear_problem(data):
     variables = {var: pulp.LpVariable(sanitize_variable_name(var), lowBound=0) 
                  for var in data["variables"]}
 
-    # Diccionario para almacenar las variables artificiales
+    # Diccionario para almacenar las variables artificiales y de exceso
     artificial_variables = {}
+    excess_variables = {}
 
     if method in ["two_phase", "m_big"]:
         M = 10000  # Valor grande para Gran M, puedes ajustarlo según sea necesario
         for i, constraint in enumerate(data["constraints"]):
             if constraint["sign"] in [">=", "="]:
-                artificial_var = pulp.LpVariable(f"artificial_{i}", lowBound=0)
-                artificial_variables[f"artificial_{i}"] = artificial_var
+                artificial_var = pulp.LpVariable(f"artificial_{i+1}", lowBound=0)
+                artificial_variables[f"artificial_{i+1}"] = artificial_var
                 lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]]
                                  for j in range(len(constraint["coeffs"])))
+
+
                 if method == "m_big":  # Gran M
                     if constraint["sign"] == ">=":
                         problem += lhs - artificial_var >= constraint["rhs"] - M * artificial_var
@@ -60,8 +66,16 @@ def solve_linear_problem(data):
     for i, constraint in enumerate(data["constraints"]):
         lhs = pulp.lpSum(constraint["coeffs"][j] * variables[data["variables"][j]]
                          for j in range(len(constraint["coeffs"])))
+
+
         if constraint["sign"] == "<=":
             problem += lhs <= constraint["rhs"]
+            # Si hay una variable de exceso, la agregamos
+            excess_var = pulp.LpVariable(f"S{i+1}", lowBound=0)
+            excess_variables[f"S{i+1}"] = excess_var
+            problem += lhs + excess_var == constraint["rhs"]
+        elif constraint["sign"] == ">=":
+            problem += lhs >= constraint["rhs"]
 
     # Selección del solver
     solver = pulp.PULP_CBC_CMD(msg=True, logPath="solver_log.txt")
@@ -84,20 +98,34 @@ def solve_linear_problem(data):
         if match:
             iterations_count = int(match.group(1))
     
+    # Extraemos las variables artificiales y de exceso de la solución
     artificial_variables_cleaned = {
         f"a{i+1}": (value(var) if var is not None else 0)
         for i, var in enumerate(artificial_variables.values())
     }
 
+    excess_variables_cleaned = {
+        f"S{i+1}": (value(var) if var is not None else 0)
+        for i, var in enumerate(excess_variables.values())
+    }
+
+    # Construir la solución base
     solution = {
         "status": status,
         "objective_value": pulp.value(problem.objective),
         "variable_values": {str(var): pulp.value(variables[var]) for var in data["variables"]},
         "artificial_variables": artificial_variables_cleaned if method in ["m_big", "two_phase"] else None,
+        "excess_variables": excess_variables_cleaned,  # Incluimos las variables de exceso
         "iterations": iterations_count
     }
     
+    # Integración del análisis de sensibilidad para LP utilizando Gemini AI
+    sensitivity_analysis = generate_sensitivity_analysis_lp(solution, pulp.value(problem.objective),
+                                                              data["constraints"], data["variables"], method=method)
+    solution["sensitivity_analysis"] = sensitivity_analysis
+    
     return jsonable_encoder(solution)
+
 
 def solve_m_big_linear_problem(objective_coeffs, variable_names, constraints, objective_type, M=10000):
     model = LpProblem("M_Big_Problem", LpMaximize if objective_type == "max" else LpMinimize)
@@ -211,8 +239,9 @@ def solve_two_phase_linear_problem(objective_coeffs, variable_names, constraints
     }
 
     return solution
-
 def solve_graphical(data):
+    from services.optimization_service import generate_sensitivity_analysis_graphical  # Evita importación circular
+
     if len(data["variables"]) != 2:
         return {"error": "El método gráfico solo se puede usar con 2 variables."}
     
@@ -280,23 +309,26 @@ def solve_graphical(data):
     plt.subplots_adjust(bottom=0.3)
     plt.savefig('static/graph_with_table.png', bbox_inches='tight')
     plt.close()
+    # Llamada al análisis de sensibilidad
+    sensitivity_analysis_result = generate_sensitivity_analysis_graphical(
+        solution={"intersection_points": intersection_points},  # Pasa los puntos de intersección
+        objective_value=optimal_value,
+        constraints=constraints,
+        variables=data["variables"]
+    )
     
     return {
         "status": "optimal",
         "objective_value": optimal_value,
         "variable_values": {"x1": optimal_point[0], "x2": optimal_point[1]},
-        "graph": "/graph_with_table.png"
+        "graph": "/graph_with_table.png",
+        "sensitivity_analysis": sensitivity_analysis_result["analysis"]  # Devuelve el análisis de sensibilidad
+
     }
 
 def solve_dual_linear_problem(data):
     """
     Resuelve el problema dual derivado del problema primal dado en 'data'.
-
-    Se asume que:
-      - Si el objetivo primal es "max", las restricciones son del tipo "Ax <= b" y
-        el dual es: min b^T y, sujeto a A^T y >= c, y >= 0.
-      - Si el objetivo primal es "min", las restricciones son del tipo "Ax >= b" y
-        el dual es: max b^T y, sujeto a A^T y <= c, y >= 0.
 
     Parámetros en 'data':
       - "objective": "max" o "min"
@@ -312,7 +344,7 @@ def solve_dual_linear_problem(data):
     """
     import pulp
     from pulp import LpProblem, LpMinimize, LpMaximize, LpVariable, lpSum, value
-
+    from services.optimization_service import generate_sensitivity_analysis_dual 
     primal_objective = data["objective"]
     primal_vars = data["variables"]
     c = data["objective_coeffs"]
@@ -341,8 +373,19 @@ def solve_dual_linear_problem(data):
     dual_objective_value = value(dual_problem.objective)
     variable_values = {var.name: value(var) for var in dual_problem.variables()}
 
-    return {
+    # Llamar a la función de análisis de sensibilidad para el caso DUAL
+    solution = {
         "status": dual_status,
         "objective_value": dual_objective_value,
         "variable_values": variable_values
+    }
+    print("Antes de llamar a generate_sensitivity_analysis_dual")
+    sensitivity_analysis = generate_sensitivity_analysis_dual(solution, constraints, primal_objective, dual_objective_value)
+    print("Después de llamar a generate_sensitivity_analysis_dual:", sensitivity_analysis)
+
+    return {
+        "status": dual_status,
+        "objective_value": dual_objective_value,
+        "variable_values": variable_values,
+        "sensitivity_analysis": sensitivity_analysis
     }

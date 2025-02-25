@@ -1,6 +1,11 @@
 from fastapi import APIRouter, HTTPException
-from models.linear_program import solve_linear_problem, solve_graphical, solve_two_phase_linear_problem, solve_m_big_linear_problem, solve_dual_linear_problem
-
+from models.linear_program import (
+    solve_linear_problem,
+    solve_graphical,
+    solve_two_phase_linear_problem,
+    solve_m_big_linear_problem,
+    solve_dual_linear_problem
+)
 from utils.validations import validate_linear_problem
 from utils.sensitivity_analysis import analyze_sensitivity
 
@@ -35,12 +40,18 @@ def solve_linear(data: dict):
             )
         elif method == "dual":
             solution = solve_dual_linear_problem(data)    
-                
         else:
             solution = solve_linear_problem(data)  # Llamar al método de programación lineal
 
         # Análisis de sensibilidad (explicativo)
-        sensitivity_analysis = analyze_sensitivity(data, solution) if method != "graphical" else None
+        # Omitir el análisis adicional para los métodos 'graphical' y 'dual'
+        if method.lower() == "graphical":
+            sensitivity_analysis = solution.get("sensitivity_analysis", None)
+        elif method.lower() == "dual":
+            # Para el método dual, tomar el análisis generado internamente
+            sensitivity_analysis = solution.get("sensitivity_analysis", None)
+        else:
+            sensitivity_analysis = analyze_sensitivity(data, solution)
 
         response = {
             "solution": solution,
@@ -58,8 +69,8 @@ def solve_linear(data: dict):
     except Exception as e:
         print("Error en solve_linear:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
-    # En el método gráfico (supongamos que es dentro de 'solve_graphical')
+
+
 def save_graph_to_file():
     graph_path = "static/graph_with_table.png"  # Guardar la imagen en la carpeta pública
     # Código para generar el gráfico y guardarlo en graph_path
-
