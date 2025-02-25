@@ -1,5 +1,7 @@
 from algorithms.linear_programming import solve_linear_program
 import numpy as np
+import google.generativeai as genai
+
 from algorithms.transportation import (
     balance_transportation_problem,
     northwest_corner_method,
@@ -8,6 +10,28 @@ from algorithms.transportation import (
     modi_method
 )
 from algorithms.network_optimization import dijkstra_algorithm
+
+API_KEY = "AIzaSyAA8l3RsLttGn9-KYU7gvrZnLa-rNxZQzE"
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel("gemini-pro")
+
+def generate_sensitivity_analysis(solution, total_cost):
+    """
+    Genera un análisis de sensibilidad utilizando Google Gemini AI con una estructura detallada.
+    """
+    prompt = f"""Dado un problema de transporte con la solución óptima:
+    {solution} y un costo total de {total_cost}, realiza un análisis de sensibilidad detallado.
+
+    1️⃣ **Resumen de la Solución**: Explica cómo se distribuyeron los envíos.
+    2️⃣ **Posibles Mejoras**: Identifica qué ajustes podrían reducir costos o mejorar eficiencia.
+    3️⃣ **Impacto en Costos y Tiempos**: Evalúa cómo los cambios pueden afectar la operación.
+    4️⃣ **Recomendaciones Finales**: Proporciona consejos concretos para optimizar la distribución.
+
+    Presenta la respuesta de manera clara y estructurada para que sea fácil de entender por un usuario de negocios.
+    """
+
+    response = model.generate_content(prompt).text
+    return response
 
 def calculate_total_cost(solution, costs):
     """
@@ -59,20 +83,21 @@ def solve_optimization(problem_type, data):
             else:
                 return {"status": "error", "message": "Método inválido"}
             
+             # Optimización con MODI
             optimal_solution = modi_method(initial_solution, costs)
-            total_cost = calculate_total_cost(optimal_solution, costs) 
+            total_cost = calculate_total_cost(optimal_solution, costs)
 
-            # Aplicar MODI
-            optimal_solution = modi_method(initial_solution, costs)
+            # 📌 Generar Análisis de Sensibilidad con Google Gemini AI
+            sensitivity_analysis = generate_sensitivity_analysis(optimal_solution, total_cost)
 
-            # 🔍 Verificar la respuesta antes de enviarla
             response = {
                 "status": "success",
                 "initial_solution": initial_solution.tolist(),
                 "optimal_solution": optimal_solution,
                 "total_cost": total_cost,
-                "balance_message": balance_message
+                "sensitivity_analysis": sensitivity_analysis
             }
+
             print("📩 Respuesta enviada al frontend:", response)  # ✅ Verificar respuesta
 
             return response
