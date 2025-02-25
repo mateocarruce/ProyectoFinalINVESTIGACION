@@ -8,7 +8,6 @@ genai.configure(api_key=API_KEY)
 
 # Listar modelos disponibles para asegurarnos de que "gemini-pro" está soportado
 models = genai.list_models()
-print("Modelos disponibles:", [model.name for model in models])
 
 # Usar la versión correcta del modelo
 model = genai.GenerativeModel("gemini-1.5-pro-latest")
