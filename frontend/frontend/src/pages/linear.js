@@ -355,9 +355,8 @@ export default function LinearPage() {
 
         </Modal.Body>
 </Modal>
-
 {/* 🔥 Análisis de Sensibilidad Mejorado */}
-{solution && solution.solution && solution.solution.sensitivity_analysis && (
+{solution && solution.sensitivity_analysis && (
   <div className="mt-5">
     <h3 className="text-dark">📊 Análisis de Sensibilidad</h3>
     <div className="card shadow-lg p-4 bg-white">
@@ -366,7 +365,7 @@ export default function LinearPage() {
       <p className="mb-3">
         <span className="badge bg-success me-2">📌</span>
         <strong>Estado de la solución:</strong>{" "}
-        {solution.solution.status === "optimal" ? "✅ Óptima" : "⚠ No Óptima"}
+        {solution.solution.status.toLowerCase() === "optimal" ? "✅ Óptima" : "⚠ No Óptima"}
       </p>
       <p>
         <span className="badge bg-primary me-2">🎯</span>
@@ -375,7 +374,7 @@ export default function LinearPage() {
       </p>
 
       {/* Renderizar el análisis de sensibilidad */}
-      {typeof solution.solution.sensitivity_analysis === "string" ? (
+      {typeof solution.sensitivity_analysis === "string" ? (
         <div className="alert alert-info">
           <ReactMarkdown
             components={{
@@ -386,13 +385,13 @@ export default function LinearPage() {
               li: (props) => <li className="list-group-item" {...props} />,
             }}
           >
-            {solution.solution.sensitivity_analysis}
+            {solution.sensitivity_analysis}
           </ReactMarkdown>
         </div>
       ) : (
         <>
           {/* Explicación General */}
-          {solution.solution.sensitivity_analysis.explanation && (
+          {solution.sensitivity_analysis.explanation && (
             <div className="alert alert-info">
               <h5 className="text-primary">📢 Explicación del Resultado:</h5>
               <ReactMarkdown
@@ -404,13 +403,13 @@ export default function LinearPage() {
                   li: (props) => <li className="list-group-item" {...props} />,
                 }}
               >
-                {solution.solution.sensitivity_analysis.explanation}
+                {solution.sensitivity_analysis.explanation}
               </ReactMarkdown>
             </div>
           )}
 
           {/* Análisis de Sensibilidad Específico */}
-          {solution.solution.sensitivity_analysis.analysis && (
+          {solution.sensitivity_analysis.analysis && (
             <div className="mt-3">
               <h6 className="text-primary">🔍 Análisis de Sensibilidad:</h6>
               <ReactMarkdown
@@ -422,18 +421,18 @@ export default function LinearPage() {
                   li: (props) => <li className="list-group-item" {...props} />,
                 }}
               >
-                {solution.solution.sensitivity_analysis.analysis}
+                {solution.sensitivity_analysis.analysis}
               </ReactMarkdown>
             </div>
           )}
 
           {/* Recomendaciones */}
-          {solution.solution.sensitivity_analysis.recommendations &&
-            solution.solution.sensitivity_analysis.recommendations.length > 0 && (
+          {solution.sensitivity_analysis.recommendations &&
+            solution.sensitivity_analysis.recommendations.length > 0 && (
               <div className="alert alert-warning">
                 <h5 className="text-primary">📌 Recomendaciones:</h5>
                 <ul className="list-group">
-                  {solution.solution.sensitivity_analysis.recommendations.map(
+                  {solution.sensitivity_analysis.recommendations.map(
                     (recommendation, index) => (
                       <li key={index} className="list-group-item">
                         {recommendation}
